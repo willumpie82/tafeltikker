@@ -1,3 +1,16 @@
+#admin-feedback-form {
+  margin-bottom: 20px;
+}
+
+#admin-feedback-form textarea {
+  width: 100%;
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  resize: vertical;
+}
+
 .admin-tabs {
   display: flex;
   gap: 8px;

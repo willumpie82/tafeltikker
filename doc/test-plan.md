@@ -6,7 +6,7 @@ still marked `[ ]`/`[~]` — it isn't built yet.
 
 Setup: `npm run dev` in `app/` (runs migrations already applied, seeds via
 `npm run db:seed` if you want fresh demo data — Sam/1234, Robin/4321,
-parent ouder/wachtwoord123).
+parent admin/wachtwoord123).
 
 ## 1. Child login
 - [ ] Avatar grid shows both seeded children with correct emoji + name.
@@ -51,7 +51,7 @@ parent ouder/wachtwoord123).
 
 ## 7. Parent portal
 - [ ] Wrong username/password → error shown, stays on login.
-- [ ] Correct login (ouder/wachtwoord123) → dashboard with both children listed.
+- [ ] Correct login (admin/wachtwoord123) → dashboard with both children listed.
 - [ ] Add a new child (name, avatar, 4-digit PIN) → appears in the list and in the kid app's avatar grid.
 - [ ] Edit a child: change name/avatar only (leave PIN blank) → saves, PIN still works with the old value.
 - [ ] Edit a child: set a new PIN → old PIN now fails on the kid login screen, new PIN works.

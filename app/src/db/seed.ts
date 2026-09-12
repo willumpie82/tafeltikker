@@ -14,7 +14,7 @@ async function main() {
     return;
   }
 
-  const parentUsername = process.env.SEED_PARENT_USERNAME ?? "ouder";
+  const parentUsername = process.env.SEED_PARENT_USERNAME ?? "admin";
   const parentPassword = process.env.SEED_PARENT_PASSWORD ?? "wachtwoord123";
 
   const [parent] = await db

@@ -3,7 +3,7 @@ import { TYPING_LEVELS, promptsFor, type TypingLevel } from "./typing-content.js
 import { setupAutoAdvance } from "./next-button.js";
 
 const COUNT_OPTIONS = [5, 10, 20];
-const AUTO_ADVANCE_MS = 3000;
+const AUTO_ADVANCE_MS = 1000;
 const IDLE_HINT_MS = 3000;
 
 const KEYBOARD_ROWS = [

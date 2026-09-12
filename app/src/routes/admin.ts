@@ -81,6 +81,7 @@ export default async function adminRoutes(app: FastifyInstance) {
         id: children.id,
         name: children.name,
         avatarId: children.avatarId,
+        parentId: parents.id,
         parentUsername: parents.username,
       })
       .from(children)
@@ -88,11 +89,15 @@ export default async function adminRoutes(app: FastifyInstance) {
       .leftJoin(parents, eq(parents.id, parentChild.parentId))
       .orderBy(children.name);
 
-    // Group parent usernames per child (a child can have multiple parents later).
-    const byChild = new Map<number, { id: number; name: string; avatarId: string; parentUsernames: string[] }>();
+    // Group parent links per child (a child can have multiple parents).
+    const byChild = new Map<
+      number,
+      { id: number; name: string; avatarId: string; parentUsernames: string[]; parentIds: number[] }
+    >();
     for (const row of rows) {
-      const entry = byChild.get(row.id) ?? { id: row.id, name: row.name, avatarId: row.avatarId, parentUsernames: [] };
+      const entry = byChild.get(row.id) ?? { id: row.id, name: row.name, avatarId: row.avatarId, parentUsernames: [], parentIds: [] };
       if (row.parentUsername) entry.parentUsernames.push(row.parentUsername);
+      if (row.parentId) entry.parentIds.push(row.parentId);
       byChild.set(row.id, entry);
     }
     return [...byChild.values()];
@@ -120,22 +125,48 @@ export default async function adminRoutes(app: FastifyInstance) {
     },
   );
 
-  app.patch<{ Params: { id: string }; Body: { name?: string; avatarId?: string; pin?: string } }>(
+  app.patch<{ Params: { id: string }; Body: { name?: string; avatarId?: string; pin?: string; parentIds?: number[] } }>(
     "/api/admin/children/:id",
     async (request, reply) => {
       const admin = await requireAdmin(request);
       if (!admin) return reply.code(403).send({ error: "forbidden" });
 
       const childId = Number(request.params.id);
-      try {
-        const child = await applyChildUpdate(childId, request.body ?? {});
-        if (!child) return reply.code(404).send({ error: "child_not_found" });
-        return child;
-      } catch (err) {
-        if (err instanceof InvalidPinError) return reply.code(400).send({ error: "invalid_pin" });
-        if (err instanceof NothingToUpdateError) return reply.code(400).send({ error: "nothing_to_update" });
-        throw err;
+      const { parentIds, ...childFields } = request.body ?? {};
+
+      const hasChildFieldUpdate = Boolean(childFields.name?.trim() || childFields.avatarId || childFields.pin);
+      if (!hasChildFieldUpdate && parentIds === undefined) {
+        return reply.code(400).send({ error: "nothing_to_update" });
       }
+      if (parentIds !== undefined && (!Array.isArray(parentIds) || parentIds.length === 0)) {
+        return reply.code(400).send({ error: "invalid_parent_ids" });
+      }
+
+      let child: { id: number; name: string; avatarId: string } | null = null;
+      if (hasChildFieldUpdate) {
+        try {
+          child = await applyChildUpdate(childId, childFields);
+        } catch (err) {
+          if (err instanceof InvalidPinError) return reply.code(400).send({ error: "invalid_pin" });
+          if (!(err instanceof NothingToUpdateError)) throw err;
+        }
+      }
+
+      if (parentIds !== undefined) {
+        await db.delete(parentChild).where(eq(parentChild.childId, childId));
+        await db.insert(parentChild).values(parentIds.map((parentId) => ({ parentId, childId })));
+      }
+
+      if (!child) {
+        const [existing] = await db
+          .select({ id: children.id, name: children.name, avatarId: children.avatarId })
+          .from(children)
+          .where(eq(children.id, childId));
+        if (!existing) return reply.code(404).send({ error: "child_not_found" });
+        child = existing;
+      }
+
+      return child;
     },
   );
 

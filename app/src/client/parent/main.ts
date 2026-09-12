@@ -63,14 +63,15 @@ document.getElementById("login-form")!.addEventListener("submit", async (event) 
 
   const me = await res.json();
   errorEl.hidden = true;
-  updateAdminLink(me.role);
+  updateAdminLink(me.username, me.role);
   await loadDashboard();
   showDashboard();
 });
 
-function updateAdminLink(role: string) {
+function updateAdminLink(username: string, role: string) {
   const adminLink = document.getElementById("admin-link") as HTMLAnchorElement;
   adminLink.hidden = role !== "user_admin" && role !== "system_admin";
+  document.getElementById("logged-in-as")!.textContent = `Ingelogd als ${username}`;
 }
 
 document.getElementById("logout-button")!.addEventListener("click", async () => {
@@ -327,7 +328,7 @@ async function init() {
   const meRes = await fetch("/api/parent/me");
   if (meRes.ok) {
     const me = await meRes.json();
-    updateAdminLink(me.role);
+    updateAdminLink(me.username, me.role);
     await loadDashboard();
     await loadFeedback();
     showDashboard();

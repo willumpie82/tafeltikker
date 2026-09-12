@@ -2,7 +2,7 @@ import { emojiFor, buildAvatarPicker } from "../avatars.js";
 
 type Role = "parent" | "user_admin" | "system_admin";
 type ParentRow = { id: number; username: string; role: Role; createdAt: string };
-type ChildRow = { id: number; name: string; avatarId: string; parentUsernames: string[] };
+type ChildRow = { id: number; name: string; avatarId: string; parentUsernames: string[]; parentIds: number[] };
 type FeedbackStatus = "new" | "accepted" | "need_info" | "planned" | "fixed" | "declined";
 type FeedbackRow = {
   id: number;
@@ -142,23 +142,31 @@ let adminNewChildAvatarId = "";
 // deferred via setTimeout was not.
 buildAvatarPicker(adminNewChildAvatarPicker, undefined, (id) => (adminNewChildAvatarId = id));
 
-async function loadParentCheckboxes() {
-  const res = await fetch("/api/admin/parents");
-  if (!res.ok) return;
-  const parentRows: ParentRow[] = await res.json();
+let cachedParentRows: ParentRow[] = [];
 
+// Same defer-past-the-click-handler pattern as buildAvatarPicker, for the
+// same reason — this is also a loop of elements appended one-by-one.
+function buildParentCheckboxes(container: HTMLElement, selectedIds: number[]) {
   setTimeout(() => {
-    adminNewChildParentsEl.innerHTML = "";
-    for (const parent of parentRows) {
+    container.innerHTML = "";
+    for (const parent of cachedParentRows) {
       const label = document.createElement("label");
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.value = String(parent.id);
+      checkbox.checked = selectedIds.includes(parent.id);
       label.appendChild(checkbox);
       label.appendChild(document.createTextNode(parent.username));
-      adminNewChildParentsEl.appendChild(label);
+      container.appendChild(label);
     }
   }, 0);
+}
+
+async function loadParentCheckboxes() {
+  const res = await fetch("/api/admin/parents");
+  if (!res.ok) return;
+  cachedParentRows = await res.json();
+  buildParentCheckboxes(adminNewChildParentsEl, []);
 }
 
 adminAddChildButton.addEventListener("click", () => {
@@ -242,18 +250,24 @@ function renderChildRow(child: ChildRow): HTMLElement {
       <label>Nieuwe geheime code <input type="text" name="pin" inputmode="numeric" pattern="\\d{4}" maxlength="4" />
         <small>Laat leeg om de code niet te wijzigen.</small>
       </label>
+      <label>Ouder(s) <div class="parent-checkboxes" data-parent-checkboxes></div></label>
       <div class="form-actions"><button type="submit">Opslaan</button></div>
       <p class="error-text" hidden></p>
     `;
     let selectedAvatarId = child.avatarId;
     buildAvatarPicker(editForm.querySelector("[data-avatar-picker]")!, child.avatarId, (id) => (selectedAvatarId = id));
+    buildParentCheckboxes(editForm.querySelector("[data-parent-checkboxes]")!, child.parentIds);
 
     editForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const data = new FormData(editForm!);
-      const body: Record<string, string> = {
+      const parentIds = [...editForm!.querySelectorAll<HTMLInputElement>("[data-parent-checkboxes] input:checked")].map((el) =>
+        Number(el.value),
+      );
+      const body: Record<string, unknown> = {
         name: String(data.get("name") ?? ""),
         avatarId: selectedAvatarId,
+        parentIds,
       };
       const pin = String(data.get("pin") ?? "");
       if (pin) body.pin = pin;
@@ -343,6 +357,28 @@ async function loadFeedback() {
   }
 }
 
+document.getElementById("admin-feedback-form")!.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const textarea = document.getElementById("admin-feedback-message") as HTMLTextAreaElement;
+  const errorEl = document.getElementById("admin-feedback-error")!;
+
+  const res = await fetch("/api/parent/feedback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: textarea.value }),
+  });
+
+  if (!res.ok) {
+    errorEl.textContent = "Er ging iets mis bij het versturen.";
+    errorEl.hidden = false;
+    return;
+  }
+
+  errorEl.hidden = true;
+  textarea.value = "";
+  await loadFeedback();
+});
+
 async function generateInvite(days: number): Promise<string | null> {
   const res = await fetch("/api/admin/invites", {
     method: "POST",
@@ -420,6 +456,7 @@ async function init() {
   }
 
   myRole = me.role;
+  document.getElementById("logged-in-as")!.textContent = `Ingelogd als ${me.username}`;
   appEl.hidden = false;
   await loadParents();
   await loadParentCheckboxes();

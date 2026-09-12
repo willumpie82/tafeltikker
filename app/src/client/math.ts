@@ -11,7 +11,7 @@ const DIFFICULTIES: { id: Difficulty; label: string }[] = [
   { id: "hard", label: "Moeilijk" },
 ];
 const MAX_TRIES = 3; // used by both "medium" and "hard"
-const AUTO_ADVANCE_MS = 3000;
+const AUTO_ADVANCE_MS = 1000;
 const HARD_TRY_SECONDS = 8; // "hard" only: run out of time on a try and it's marked wrong
 
 const selectedTables = new Set<number>();
