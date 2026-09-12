@@ -1,5 +1,6 @@
 import { emojiFor, buildAvatarPicker } from "../avatars.js";
 import { PROMPT_POOLS, QWERTY_ROWS, type TypingLevel } from "../typing-content.js";
+import { STICKERS, stickerFor } from "../stickers.js";
 
 type Child = { id: number; name: string; avatarId: string };
 type Stats = {
@@ -18,6 +19,20 @@ type Stats = {
     score: number | null;
     startedAt: string;
   }[];
+};
+
+type Challenge = {
+  id: number;
+  type: "time_played" | "table_confidence";
+  stickerId: string;
+  targetMinutes: number | null;
+  countsMath: boolean | null;
+  countsTyping: boolean | null;
+  targetConfidence: number | null;
+  tableNumbers?: number[];
+  completedAt: string | null;
+  progress: number;
+  target: number;
 };
 
 /**
@@ -312,6 +327,82 @@ async function loadChildStats(childId: number): Promise<Stats> {
   return res.json();
 }
 
+async function loadChallenges(childId: number): Promise<Challenge[]> {
+  const res = await fetch(`/api/parent/children/${childId}/challenges`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+function challengeLabel(challenge: Challenge): string {
+  if (challenge.type === "time_played") {
+    const modules = [challenge.countsMath && "Sommen", challenge.countsTyping && "Typen"].filter(Boolean).join(" + ");
+    return `${modules}: ${challenge.progress}/${challenge.target} min`;
+  }
+  const tables = (challenge.tableNumbers ?? []).join(", ");
+  return `Tafel${(challenge.tableNumbers ?? []).length > 1 ? "s" : ""} ${tables}: ${challenge.progress}/${challenge.target}%`;
+}
+
+function renderChallenges(childId: number, challenges: Challenge[]): string {
+  const list =
+    challenges.length === 0
+      ? `<p class="no-data">Nog geen uitdagingen.</p>`
+      : `<div class="challenge-list">${challenges
+          .map((c) => {
+            const sticker = stickerFor(c.stickerId);
+            const done = Boolean(c.completedAt);
+            const pct = c.target > 0 ? Math.min(100, Math.round((c.progress / c.target) * 100)) : 0;
+            return `<div class="challenge-row">
+              <span class="challenge-row-icon">${sticker.icon}</span>
+              <span class="challenge-row-info">
+                <span>${challengeLabel(c)}</span>
+                <div class="accuracy-bar"><div class="accuracy-bar-fill" style="width:${done ? 100 : pct}%"></div></div>
+              </span>
+              ${done ? `<span class="status-badge fixed">Behaald</span>` : ""}
+              <button type="button" class="challenge-reset-button" data-child="${childId}" data-challenge="${c.id}">Reset</button>
+            </div>`;
+          })
+          .join("")}</div>`;
+
+  const tableButtons = Array.from({ length: 10 }, (_, i) => i + 1)
+    .map((t) => `<button type="button" class="challenge-table-button" data-table="${t}">${t}</button>`)
+    .join("");
+  const stickerButtons = STICKERS.map(
+    (s, i) => `<button type="button" class="challenge-sticker-button${i === 0 ? " selected" : ""}" data-sticker="${s.id}" title="${s.label}">${s.icon}</button>`,
+  ).join("");
+
+  return `${list}
+    <button type="button" class="challenge-add-toggle" data-child="${childId}">+ Uitdaging toevoegen</button>
+    <form class="challenge-form" data-child="${childId}" hidden>
+      <label>Soort
+        <select class="challenge-type-select">
+          <option value="time_played">Tijd gespeeld</option>
+          <option value="table_confidence">Tafel-zelfvertrouwen</option>
+        </select>
+      </label>
+
+      <div class="challenge-fields-time">
+        <label><input type="checkbox" class="challenge-counts-math" checked /> Sommen</label>
+        <label><input type="checkbox" class="challenge-counts-typing" /> Typen</label>
+        <label>Aantal minuten <input type="number" class="challenge-target-minutes" min="1" value="30" /></label>
+      </div>
+
+      <div class="challenge-fields-table" hidden>
+        <label>Welke tafels?</label>
+        <div class="challenge-table-picker">${tableButtons}</div>
+        <label>Doel zelfvertrouwen (%) <input type="number" class="challenge-target-confidence" min="1" max="100" value="80" /></label>
+      </div>
+
+      <label>Beloning</label>
+      <div class="challenge-sticker-picker">${stickerButtons}</div>
+
+      <div class="form-actions">
+        <button type="submit">Toevoegen</button>
+        <button type="button" class="challenge-cancel">Annuleren</button>
+      </div>
+      <p class="error-text challenge-error" hidden></p>
+    </form>`;
+}
+
 function buildEditForm(child: Child, onSaved: () => void): HTMLFormElement {
   const form = document.createElement("form");
   form.className = "edit-form";
@@ -359,7 +450,7 @@ function buildEditForm(child: Child, onSaved: () => void): HTMLFormElement {
 }
 
 async function renderChildCard(child: Child): Promise<HTMLElement> {
-  const stats = await loadChildStats(child.id);
+  const [stats, challenges] = await Promise.all([loadChildStats(child.id), loadChallenges(child.id)]);
   const card = document.createElement("div");
   card.className = "child-card";
 
@@ -381,6 +472,8 @@ async function renderChildCard(child: Child): Promise<HTMLElement> {
     ${renderTypingLevels(stats.perTypingLevel, stats.perTypingPrompt)}
     <h3>Recente sessies</h3>
     ${renderRecentSessions(stats.recentSessions)}
+    <h3>Uitdagingen</h3>
+    ${renderChallenges(child.id, challenges)}
   `;
 
   // Toggling only shows/hides bars already rendered above — no new DOM
@@ -392,6 +485,8 @@ async function renderChildCard(child: Child): Promise<HTMLElement> {
       button.innerHTML = detail.hidden ? "meer &darr;" : "minder &uarr;";
     });
   });
+
+  wireChallengeControls(card, child.id);
 
   const editToggle = card.querySelector(".child-edit-toggle")!;
   let editForm: HTMLFormElement | null = null;
@@ -406,6 +501,86 @@ async function renderChildCard(child: Child): Promise<HTMLElement> {
   });
 
   return card;
+}
+
+// All challenge controls (add-toggle, type switch, table/sticker pickers,
+// reset buttons) only show/hide or toggle .selected on elements already
+// baked into the card's innerHTML above — no DOM is created inside any of
+// these click handlers, sidestepping the click-handler DOM-insertion bug
+// documented on buildAvatarPicker.
+function wireChallengeControls(card: HTMLElement, childId: number) {
+  const addToggle = card.querySelector<HTMLButtonElement>(".challenge-add-toggle");
+  const form = card.querySelector<HTMLFormElement>(".challenge-form");
+  if (!addToggle || !form) return;
+
+  addToggle.addEventListener("click", () => {
+    form.hidden = !form.hidden;
+    addToggle.hidden = !form.hidden;
+  });
+
+  const cancelButton = form.querySelector<HTMLButtonElement>(".challenge-cancel")!;
+  cancelButton.addEventListener("click", () => {
+    form.hidden = true;
+    addToggle.hidden = false;
+    form.reset();
+  });
+
+  const typeSelect = form.querySelector<HTMLSelectElement>(".challenge-type-select")!;
+  const timeFields = form.querySelector<HTMLElement>(".challenge-fields-time")!;
+  const tableFields = form.querySelector<HTMLElement>(".challenge-fields-table")!;
+  typeSelect.addEventListener("change", () => {
+    const isTime = typeSelect.value === "time_played";
+    timeFields.hidden = !isTime;
+    tableFields.hidden = isTime;
+  });
+
+  form.querySelectorAll<HTMLButtonElement>(".challenge-table-button").forEach((button) => {
+    button.addEventListener("click", () => button.classList.toggle("selected"));
+  });
+
+  form.querySelectorAll<HTMLButtonElement>(".challenge-sticker-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      form.querySelectorAll(".challenge-sticker-button").forEach((b) => b.classList.remove("selected"));
+      button.classList.add("selected");
+    });
+  });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const errorEl = form.querySelector(".challenge-error") as HTMLElement;
+    const stickerId = form.querySelector<HTMLButtonElement>(".challenge-sticker-button.selected")?.dataset.sticker ?? STICKERS[0].id;
+
+    const body: Record<string, unknown> = { type: typeSelect.value, stickerId };
+    if (typeSelect.value === "time_played") {
+      body.countsMath = (form.querySelector(".challenge-counts-math") as HTMLInputElement).checked;
+      body.countsTyping = (form.querySelector(".challenge-counts-typing") as HTMLInputElement).checked;
+      body.targetMinutes = Number((form.querySelector(".challenge-target-minutes") as HTMLInputElement).value);
+    } else {
+      body.tableNumbers = Array.from(form.querySelectorAll<HTMLButtonElement>(".challenge-table-button.selected")).map((b) => Number(b.dataset.table));
+      body.targetConfidence = Number((form.querySelector(".challenge-target-confidence") as HTMLInputElement).value);
+    }
+
+    const res = await fetch(`/api/parent/children/${childId}/challenges`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      errorEl.textContent = "Vul alle velden goed in.";
+      errorEl.hidden = false;
+      return;
+    }
+
+    await loadDashboard();
+  });
+
+  card.querySelectorAll<HTMLButtonElement>(".challenge-reset-button").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await fetch(`/api/parent/children/${button.dataset.child}/challenges/${button.dataset.challenge}/reset`, { method: "POST" });
+      await loadDashboard();
+    });
+  });
 }
 
 async function loadDashboard() {

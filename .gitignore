@@ -18,3 +18,6 @@ app/public/register.js.map
 *.log
 .DS_Store
 .claude/
+app/test-results/
+app/playwright-report/
+app/blob-report/

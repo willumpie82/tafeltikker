@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { practiceSessions } from "../db/schema.js";
+import { checkTimePlayedChallenges } from "./challenges.js";
 
 export async function startPracticeSession(childId: number, module: "math" | "typing") {
   const [session] = await db.insert(practiceSessions).values({ childId, module }).returning();
@@ -42,6 +43,8 @@ export async function finishPracticeSession(
       score: outcome?.score,
     })
     .where(eq(practiceSessions.id, sessionId));
+
+  await checkTimePlayedChallenges(childId);
 
   return { durationSeconds };
 }

@@ -1,7 +1,10 @@
-import { showView } from "./views.js";
+import { showView, setChallengeWidgetRefresh } from "./views.js";
 import { startMathSettings } from "./math.js";
 import { startTypingSettings } from "./typing.js";
 import { emojiFor } from "./avatars.js";
+import { refreshChallengeWidget } from "./challenges.js";
+
+setChallengeWidgetRefresh(refreshChallengeWidget);
 
 type Avatar = { id: number; name: string; avatarId: string };
 

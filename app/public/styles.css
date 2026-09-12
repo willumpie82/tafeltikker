@@ -634,3 +634,66 @@ h1 {
   font-size: 1.3rem;
   margin-bottom: 20px;
 }
+
+.challenge-widget {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  margin: 0 0 16px;
+  padding-bottom: 2px;
+}
+
+.challenge-widget[hidden],
+.challenge-widget.empty {
+  display: none;
+}
+
+.challenge-chip {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: white;
+  border: 2px solid var(--border, #e0e0e0);
+  border-radius: 12px;
+  padding: 8px 10px;
+  min-width: 76px;
+}
+
+.challenge-chip.done {
+  border-color: #f08c00;
+  background: #fff9e6;
+}
+
+.challenge-chip-icon {
+  font-size: 1.6rem;
+  filter: grayscale(1) opacity(0.5);
+}
+
+.challenge-chip.done .challenge-chip-icon {
+  filter: none;
+}
+
+.challenge-chip-bar {
+  width: 100%;
+  height: 5px;
+  border-radius: 3px;
+  background: #eee;
+  overflow: hidden;
+}
+
+.challenge-chip-fill {
+  height: 100%;
+  background: var(--accent);
+}
+
+.challenge-chip.done .challenge-chip-fill {
+  background: #f08c00;
+}
+
+.challenge-chip-label {
+  font-size: 0.65rem;
+  color: #888;
+  white-space: nowrap;
+}

@@ -6,7 +6,7 @@ import { hashSecret, isValidPin, verifySecret } from "../auth/password.js";
 import { requireParentId } from "../auth/require.js";
 import { applyChildUpdate, InvalidPinError, NothingToUpdateError } from "./childUpdates.js";
 
-async function assertOwnsChild(parentId: number, childId: number): Promise<boolean> {
+export async function assertOwnsChild(parentId: number, childId: number): Promise<boolean> {
   const [link] = await db
     .select()
     .from(parentChild)

@@ -3,6 +3,7 @@ import { db } from "../db/index.js";
 import { mathAttempts } from "../db/schema.js";
 import { requireChildId } from "../auth/require.js";
 import { startPracticeSession, findOwnedSession, finishPracticeSession } from "./practiceSessions.js";
+import { checkTableConfidenceChallenges } from "./challenges.js";
 
 export default async function mathRoutes(app: FastifyInstance) {
   app.post("/api/child/math/sessions", async (request, reply) => {
@@ -45,6 +46,8 @@ export default async function mathRoutes(app: FastifyInstance) {
       hintUsed: Boolean(hintUsed),
       elapsedMs: Number.isFinite(elapsedMs) ? Math.round(elapsedMs!) : null,
     });
+
+    await checkTableConfidenceChallenges(childId);
 
     return { correct, correctAnswer };
   });

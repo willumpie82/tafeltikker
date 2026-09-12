@@ -511,3 +511,114 @@ button#logout-button {
 .session-aborted {
   color: #f08c00;
 }
+
+.challenge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.challenge-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.challenge-row-icon {
+  font-size: 1.4rem;
+}
+
+.challenge-row-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+
+.challenge-reset-button {
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+}
+
+.challenge-add-toggle {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.9rem;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.challenge-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 8px;
+  max-width: 360px;
+}
+
+.challenge-form[hidden] {
+  display: none;
+}
+
+.challenge-fields-time[hidden],
+.challenge-fields-table[hidden] {
+  display: none;
+}
+
+.challenge-fields-time,
+.challenge-fields-table {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.challenge-table-picker {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.challenge-table-button {
+  padding: 8px 0;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  background: white;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.challenge-table-button.selected {
+  background: var(--accent);
+  color: white;
+}
+
+.challenge-sticker-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.challenge-sticker-button {
+  font-size: 1.3rem;
+  padding: 6px 10px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+}
+
+.challenge-sticker-button.selected {
+  border-color: var(--accent);
+  background: #eef4ff;
+}

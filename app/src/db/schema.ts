@@ -108,6 +108,48 @@ export const feedback = sqliteTable("feedback", {
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
 
+export const challenges = sqliteTable("challenges", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  childId: integer("child_id")
+    .notNull()
+    .references(() => children.id),
+  createdBy: integer("created_by")
+    .notNull()
+    .references(() => parents.id),
+  type: text("type", { enum: ["time_played", "table_confidence"] }).notNull(),
+  stickerId: text("sticker_id").notNull(),
+  // Only "private" is ever written/read in v1 — column exists so a later
+  // "public" phase (gated on a family/group concept that doesn't exist
+  // yet) doesn't need a migration.
+  visibility: text("visibility", { enum: ["private"] })
+    .notNull()
+    .default("private"),
+  // time_played only:
+  targetMinutes: integer("target_minutes"),
+  countsMath: integer("counts_math", { mode: "boolean" }),
+  countsTyping: integer("counts_typing", { mode: "boolean" }),
+  // table_confidence only (selected tables live in challengeTables):
+  targetConfidence: integer("target_confidence"),
+  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
+  // Where the counter/window begins; equals createdAt initially, reset to
+  // "now" by a manual parent reset.
+  startedAt: text("started_at").notNull().default(sql`(current_timestamp)`),
+  // Set once, permanently — never cleared except by an explicit reset, so
+  // progress dropping after completion doesn't revoke the sticker.
+  completedAt: text("completed_at"),
+});
+
+export const challengeTables = sqliteTable(
+  "challenge_tables",
+  {
+    challengeId: integer("challenge_id")
+      .notNull()
+      .references(() => challenges.id),
+    tableNumber: integer("table_number").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.challengeId, table.tableNumber] })],
+);
+
 export const parentInvites = sqliteTable("parent_invites", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   token: text("token").notNull().unique(),
