@@ -7,6 +7,7 @@ import childRoutes from "./routes/child.js";
 import mathRoutes from "./routes/math.js";
 import parentRoutes from "./routes/parent.js";
 import typingRoutes from "./routes/typing.js";
+import adminRoutes from "./routes/admin.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -23,6 +24,7 @@ await app.register(childRoutes);
 await app.register(mathRoutes);
 await app.register(parentRoutes);
 await app.register(typingRoutes);
+await app.register(adminRoutes);
 
 app.get("/healthz", async () => ({ status: "ok" }));
 

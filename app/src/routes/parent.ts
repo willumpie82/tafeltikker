@@ -4,6 +4,7 @@ import { db } from "../db/index.js";
 import { parents, children, parentChild, practiceSessions, mathAttempts, typingAttempts, feedback } from "../db/schema.js";
 import { hashSecret, isValidPin, verifySecret } from "../auth/password.js";
 import { requireParentId } from "../auth/require.js";
+import { applyChildUpdate, InvalidPinError, NothingToUpdateError } from "./childUpdates.js";
 
 async function assertOwnsChild(parentId: number, childId: number): Promise<boolean> {
   const [link] = await db
@@ -26,7 +27,7 @@ export default async function parentRoutes(app: FastifyInstance) {
     }
 
     request.parentSession.set("parentId", parent.id);
-    return { id: parent.id, username: parent.username };
+    return { id: parent.id, username: parent.username, role: parent.role };
   });
 
   app.post("/api/parent/logout", async (request) => {
@@ -38,7 +39,10 @@ export default async function parentRoutes(app: FastifyInstance) {
     const parentId = requireParentId(request);
     if (!parentId) return reply.code(401).send({ error: "not_authenticated" });
 
-    const [parent] = await db.select({ id: parents.id, username: parents.username }).from(parents).where(eq(parents.id, parentId));
+    const [parent] = await db
+      .select({ id: parents.id, username: parents.username, role: parents.role })
+      .from(parents)
+      .where(eq(parents.id, parentId));
     if (!parent) {
       request.parentSession.delete();
       return reply.code(401).send({ error: "not_authenticated" });
@@ -89,27 +93,13 @@ export default async function parentRoutes(app: FastifyInstance) {
         return reply.code(404).send({ error: "child_not_found" });
       }
 
-      const { name, avatarId, pin } = request.body ?? {};
-      if (pin !== undefined && !isValidPin(pin)) {
-        return reply.code(400).send({ error: "invalid_pin" });
+      try {
+        return await applyChildUpdate(childId, request.body ?? {});
+      } catch (err) {
+        if (err instanceof InvalidPinError) return reply.code(400).send({ error: "invalid_pin" });
+        if (err instanceof NothingToUpdateError) return reply.code(400).send({ error: "nothing_to_update" });
+        throw err;
       }
-
-      const updates: Partial<typeof children.$inferInsert> = {};
-      if (name?.trim()) updates.name = name.trim();
-      if (avatarId) updates.avatarId = avatarId;
-      if (pin) updates.pinHash = await hashSecret(pin);
-
-      if (Object.keys(updates).length === 0) {
-        return reply.code(400).send({ error: "nothing_to_update" });
-      }
-
-      const [child] = await db
-        .update(children)
-        .set(updates)
-        .where(eq(children.id, childId))
-        .returning({ id: children.id, name: children.name, avatarId: children.avatarId });
-
-      return child;
     },
   );
 
