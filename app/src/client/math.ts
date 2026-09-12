@@ -1,5 +1,6 @@
 import { showView } from "./views.js";
 import { setupAutoAdvance } from "./next-button.js";
+import { guardedFetch } from "./session-guard.js";
 
 type Question = { tableNumber: number; operandA: number; operandB: number };
 type Difficulty = "easy" | "medium" | "hard";
@@ -384,7 +385,8 @@ function hintSteps(table: number, multiplier: number): string[] | null {
 }
 
 async function startSession() {
-  const res = await fetch("/api/child/math/sessions", { method: "POST" });
+  const res = await guardedFetch("/api/child/math/sessions", { method: "POST" });
+  if (!res) return;
   const data = await res.json();
   sessionId = data.sessionId;
 
@@ -486,7 +488,7 @@ async function finalizeAttempt(answerValue: number, hintUsed: boolean) {
   if (sessionId === null) return;
   const question = queue[currentIndex];
 
-  const res = await fetch(`/api/child/math/sessions/${sessionId}/attempts`, {
+  const res = await guardedFetch(`/api/child/math/sessions/${sessionId}/attempts`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -498,6 +500,7 @@ async function finalizeAttempt(answerValue: number, hintUsed: boolean) {
       elapsedMs: Date.now() - questionStartTime,
     }),
   });
+  if (!res) return;
   const result = await res.json();
 
   const key = comboKey(question.tableNumber, question.operandB);

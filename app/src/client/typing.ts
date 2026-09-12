@@ -1,6 +1,7 @@
 import { showView } from "./views.js";
 import { TYPING_LEVELS, promptsFor, QWERTY_ROWS, type TypingLevel } from "./typing-content.js";
 import { setupAutoAdvance } from "./next-button.js";
+import { guardedFetch } from "./session-guard.js";
 
 const COUNT_OPTIONS = [5, 10, 20];
 const AUTO_ADVANCE_MS = 1000;
@@ -167,7 +168,8 @@ export function startTypingSettings() {
 }
 
 async function startSession() {
-  const res = await fetch("/api/child/typing/sessions", { method: "POST" });
+  const res = await guardedFetch("/api/child/typing/sessions", { method: "POST" });
+  if (!res) return;
   const data = await res.json();
   sessionId = data.sessionId;
 
@@ -276,7 +278,7 @@ async function submitAttempt(typed: string) {
   const elapsedMs = startTime === 0 ? 1 : performance.now() - startTime;
   const prompt = queue[currentIndex];
 
-  const res = await fetch(`/api/child/typing/sessions/${sessionId}/attempts`, {
+  const res = await guardedFetch(`/api/child/typing/sessions/${sessionId}/attempts`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -288,6 +290,7 @@ async function submitAttempt(typed: string) {
       correctKeystrokes,
     }),
   });
+  if (!res) return;
   const result = await res.json();
   results.push(result);
 

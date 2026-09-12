@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { db } from "./index.js";
 import { parents, children, parentChild } from "./schema.js";
 import { hashSecret } from "../auth/password.js";
