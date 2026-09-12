@@ -1,20 +1,8 @@
 import { showView } from "./views.js";
 import { startMathSettings } from "./math.js";
+import { emojiFor } from "./avatars.js";
 
 type Avatar = { id: number; name: string; avatarId: string };
-
-const AVATAR_EMOJI: Record<string, string> = {
-  fox: "🦊",
-  owl: "🦉",
-  cat: "🐱",
-  dog: "🐶",
-  bear: "🐻",
-  rabbit: "🐰",
-};
-
-function emojiFor(avatarId: string): string {
-  return AVATAR_EMOJI[avatarId] ?? "🙂";
-}
 
 let selectedChild: Avatar | null = null;
 let enteredPin = "";
@@ -122,7 +110,7 @@ document.getElementById("logout-button")!.addEventListener("click", async () => 
 });
 
 document.getElementById("parent-icon")!.addEventListener("click", () => {
-  alert("Het ouderportaal komt in een volgende stap.");
+  window.location.href = "/parent.html";
 });
 
 document.getElementById("start-math-button")!.addEventListener("click", () => {

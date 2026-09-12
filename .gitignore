@@ -2,6 +2,8 @@ node_modules/
 dist/
 app/public/app.js
 app/public/app.js.map
+app/public/parent.js
+app/public/parent.js.map
 *.sqlite
 *.sqlite-journal
 *.sqlite-shm

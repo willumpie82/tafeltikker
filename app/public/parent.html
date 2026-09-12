@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tafeltikker — Ouderportaal</title>
+    <link rel="stylesheet" href="/parent.css" />
+  </head>
+  <body>
+    <main id="parent-app">
+      <section id="parent-view-login" class="parent-view">
+        <h1>Ouderportaal</h1>
+        <form id="login-form">
+          <label>
+            Gebruikersnaam
+            <input type="text" id="login-username" autocomplete="username" required />
+          </label>
+          <label>
+            Wachtwoord
+            <input type="password" id="login-password" autocomplete="current-password" required />
+          </label>
+          <p id="login-error" class="error-text" hidden>Onjuiste gebruikersnaam of wachtwoord.</p>
+          <button type="submit">Inloggen</button>
+        </form>
+        <a href="/">&larr; Terug naar Tafeltikker</a>
+      </section>
+
+      <section id="parent-view-dashboard" class="parent-view" hidden>
+        <header class="dashboard-header">
+          <h1>Ouderportaal</h1>
+          <button type="button" id="logout-button">Uitloggen</button>
+        </header>
+
+        <button type="button" id="add-child-button">+ Kind toevoegen</button>
+
+        <form id="add-child-form" class="child-form" hidden>
+          <h2>Nieuw kind</h2>
+          <label>
+            Naam
+            <input type="text" id="new-child-name" required />
+          </label>
+          <label>
+            Avatar
+            <select id="new-child-avatar"></select>
+          </label>
+          <label>
+            Geheime code (4 cijfers)
+            <input type="text" id="new-child-pin" inputmode="numeric" pattern="\d{4}" maxlength="4" required />
+          </label>
+          <div class="form-actions">
+            <button type="submit">Opslaan</button>
+            <button type="button" id="cancel-add-child">Annuleren</button>
+          </div>
+          <p id="add-child-error" class="error-text" hidden></p>
+        </form>
+
+        <div id="children-list" class="children-list"></div>
+      </section>
+    </main>
+
+    <script type="module" src="/parent.js"></script>
+  </body>
+</html>

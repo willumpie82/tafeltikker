@@ -40,8 +40,19 @@ every process start and sessions won't survive a restart.
 
 Two independent session cookies, `child_session` and `parent_session`, each
 signed with their own key. `/api/child/**` routes only ever read/write
-`child_session`; a `/api/parent/**` route group (added alongside the parent
-portal) will only read/write `parent_session` — the two cannot cross.
+`child_session`; `/api/parent/**` routes only ever read/write
+`parent_session` — the two cannot cross, verified by cross-session curl
+checks during development.
+
+## Parent portal
+
+Served as a separate page (`/parent.html`, own bundle `parent.js`) rather
+than a view inside the kid app, so the two never share client-side state.
+Reached via the small icon in the corner of the kid app. Log in with the
+account from `npm run db:seed` (or one you create directly in the `parents`
+table). From there a parent can see per-child time practiced (today/week/
+total), per-table accuracy, a 7-day accuracy trend, add children, and edit a
+child's name/avatar/PIN.
 
 ## Build
 
