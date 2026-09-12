@@ -497,6 +497,7 @@ async function finalizeAttempt(answerValue: number, hintUsed: boolean) {
       operandB: question.operandB,
       answer: answerValue,
       hintUsed,
+      difficulty: selectedDifficulty,
       elapsedMs: Date.now() - questionStartTime,
     }),
   });

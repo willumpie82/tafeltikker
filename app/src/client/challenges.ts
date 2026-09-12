@@ -8,11 +8,14 @@ type Challenge = {
   countsMath: boolean | null;
   countsTyping: boolean | null;
   targetConfidence: number | null;
+  requiredDifficulty: string | null;
   tableNumbers?: number[];
   progress: number;
   target: number;
   completedAt: string | null;
 };
+
+const DIFFICULTY_LABELS: Record<string, string> = { easy: "Makkelijk", medium: "Gemiddeld", hard: "Moeilijk" };
 
 const widgetEl = document.getElementById("challenge-widget")!;
 
@@ -28,9 +31,10 @@ function describeChallenge(challenge: Challenge): string {
 
   const tables = (challenge.tableNumbers ?? []).join(", ");
   const plural = (challenge.tableNumbers ?? []).length > 1 ? "tafels" : "tafel";
+  const difficultyLabel = DIFFICULTY_LABELS[challenge.requiredDifficulty ?? "easy"] ?? "Makkelijk";
   return done
     ? `Je kent ${plural} ${tables} nu heel goed!`
-    : `Word ${challenge.target}% zeker van ${plural} ${tables} — je zit nu op ${challenge.progress}%.`;
+    : `Word ${challenge.target}% zeker van ${plural} ${tables} op ${difficultyLabel} (of hoger) — je zit nu op ${challenge.progress}%.`;
 }
 
 function renderChip(challenge: Challenge): string {

@@ -221,6 +221,11 @@ export default async function parentRoutes(app: FastifyInstance) {
         completedCount: practiceSessions.completedCount,
         score: practiceSessions.score,
         startedAt: practiceSessions.startedAt,
+        // A math session is played at one fixed difficulty throughout (it's
+        // chosen once before starting, with no in-session switch), so any
+        // one of its attempts is representative. Null for typing sessions,
+        // which have no rows in math_attempts at all.
+        difficulty: sql<string | null>`(select ${mathAttempts.difficulty} from ${mathAttempts} where ${mathAttempts.sessionId} = ${practiceSessions.id} limit 1)`,
       })
       .from(practiceSessions)
       .where(and(eq(practiceSessions.childId, childId), sql`${practiceSessions.status} is not null`))

@@ -75,6 +75,11 @@ export const mathAttempts = sqliteTable(
     correct: integer("correct", { mode: "boolean" }).notNull(),
     hintUsed: integer("hint_used", { mode: "boolean" }).notNull().default(false),
     elapsedMs: integer("elapsed_ms"),
+    // Nullable: rows logged before this was tracked have no difficulty on
+    // record. Treated as "easy" (the lowest tier) wherever it matters, e.g.
+    // a table-confidence challenge requiring at least "medium" — an unknown
+    // difficulty shouldn't be assumed to satisfy a higher bar.
+    difficulty: text("difficulty", { enum: ["easy", "medium", "hard"] }),
     answeredAt: text("answered_at").notNull().default(sql`(current_timestamp)`),
   },
   (table) => [index("math_attempts_child_idx").on(table.childId, table.answeredAt)],
@@ -133,8 +138,12 @@ export const challenges = sqliteTable("challenges", {
   targetMinutes: integer("target_minutes"),
   countsMath: integer("counts_math", { mode: "boolean" }),
   countsTyping: integer("counts_typing", { mode: "boolean" }),
-  // table_confidence only (selected tables live in challengeTables):
+  // table_confidence only (selected tables live in challengeTables). Null
+  // (challenges created before this existed) is treated as "easy" — the
+  // lowest tier, so any attempt satisfies it, same as before this field
+  // existed.
   targetConfidence: integer("target_confidence"),
+  requiredDifficulty: text("required_difficulty", { enum: ["easy", "medium", "hard"] }),
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
   // Where the counter/window begins; equals createdAt initially, reset to
   // "now" by a manual parent reset.

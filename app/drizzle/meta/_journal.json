@@ -71,6 +71,13 @@
       "when": 1789250061893,
       "tag": "0009_high_ezekiel",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1789250957467,
+      "tag": "0010_neat_wolfpack",
+      "breakpoints": true
     }
   ]
 }

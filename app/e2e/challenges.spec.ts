@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { loginAsChild, loginAsParent, playMathSessionCorrectly } from "./helpers.js";
+import { loginAsChild, loginAsParent, playMathSessionCorrectly, playMathSessionOnNumpad } from "./helpers.js";
 import { getChildId, getLatestSessionId, setSessionDurationSeconds } from "./db.js";
 
 // These tests intentionally run in order and share state (a challenge
@@ -80,6 +80,48 @@ test.describe.serial("challenge module", () => {
     const row = samCard.locator(".challenge-row", { hasText: "Tafel 7" });
 
     await row.locator(".challenge-reset-button").click();
+    await expect(row.locator(".status-badge")).toHaveText("Behaald");
+  });
+
+  test("a table_confidence challenge with a difficulty requirement ignores attempts below that tier", async ({ page, browser }) => {
+    test.setTimeout(60000); // two full 20-question play-throughs, the second via the slower numpad flow
+    await loginAsParent(page);
+    const samCard = page.locator(".child-card", { hasText: "Sam" });
+
+    await samCard.locator(".challenge-add-toggle").click();
+    await samCard.locator(".challenge-type-select").selectOption("table_confidence");
+    await samCard.locator(".challenge-table-button", { hasText: /^8$/ }).click();
+    await samCard.locator(".challenge-target-confidence").fill("60");
+    await samCard.locator(".challenge-required-difficulty").selectOption("medium");
+    await samCard.locator(".challenge-sticker-button[data-sticker='gaming']").click();
+    await samCard.locator("form.challenge-form button[type=submit]").click();
+
+    const row = samCard.locator(".challenge-row", { hasText: "Tafel 8" });
+    await expect(row).toContainText("Gemiddeld of hoger");
+
+    // Perfect Makkelijk (easy) practice on the exact table shouldn't count
+    // toward a challenge that requires at least Gemiddeld — higher tiers
+    // satisfy a lower requirement, never the other way around.
+    const childPage = await browser.newPage();
+    await loginAsChild(childPage, "Sam");
+    await playMathSessionCorrectly(childPage, [8], 20);
+    await childPage.close();
+    await page.reload();
+    await expect(row).toContainText("0/60%");
+    await expect(row.locator(".status-badge")).toHaveCount(0);
+
+    // The same table played correctly at Gemiddeld does count. A fresh page
+    // (rather than reusing the one above) so the table picker starts with
+    // nothing selected — otherwise clicking table 8 again would toggle it
+    // *off*, since it's still selected from the previous session on the
+    // same page.
+    const childPage2 = await browser.newPage();
+    await loginAsChild(childPage2, "Sam");
+    await playMathSessionOnNumpad(childPage2, [8], 20, "Gemiddeld");
+    await childPage2.close();
+
+    await page.reload();
+    await expect(row).toContainText("100/60%");
     await expect(row.locator(".status-badge")).toHaveText("Behaald");
   });
 

@@ -73,6 +73,21 @@ bearing decision here: it's what stops a child from "completing" a
 table-set challenge by only drilling the facts they already find easy while
 ignoring the rest.
 
+**Difficulty requirement.** A table-confidence challenge also carries a
+required difficulty tier (`easy`/`medium`/`hard`, i.e. Makkelijk/Gemiddeld/
+Moeilijk) — `challenges.required_difficulty`, defaulting to `easy` (any
+tier counts) when unset, which is also how every challenge created before
+this field existed keeps behaving exactly as before. Higher tiers satisfy
+lower requirements, never the other way — an attempt made on Moeilijk
+counts toward a challenge that only required Gemiddeld, but a Makkelijk
+attempt never counts toward anything above Makkelijk. `math_attempts` now
+records the difficulty each attempt was answered at (`easy`/`medium`/
+`hard`, nullable for older rows); a missing/null difficulty is treated as
+the lowest tier rather than assumed to satisfy a higher bar, so an unknown
+attempt only ever counts toward an "easy" requirement. `computeTableConfidenceProgress`
+filters attempts to rank-at-or-above the required tier before running the
+same per-fact confidence average described above.
+
 This is also the answer to a real exploit noticed during testing: Makkelijk
 (multiple choice) locks the options after one click, so there's no
 try-all-4-in-one-screen shortcut — but a wrong answer gets requeued to

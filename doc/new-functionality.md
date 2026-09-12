@@ -10,9 +10,12 @@ general:
 - [n] kind login screen: can we store the last logged in kids in a cookie? and only show the tile when it is stored, otherwise just (nick)name field, problem is, before kind tries to login, we don't know yet to what 'parent'/group this user belongs, test kind-naam unique-ness? if this app becomes popular, we have a user challange anyway, what if we add /[grouptag] to the URL (user admin can add group as e.g. schoolnaam_klasX "de_fonkel_5a")
 - [n] found while building v1: resetting a tafel-confidence challenge doesn't actually give the kid a fresh shot at it — confidence is an all-time rolling average, not scoped to after the challenge starts (unlike tijd-gespeeld, which does restart cleanly), so if the underlying attempts already clear the bar, it just re-completes instantly. Worth a decision: leave as-is (it's honestly reporting current mastery), or scope confidence to attempts since startedAt too, like time-played does?
 
+- [x] add math diffuculty to parent dashboard
 
 typing:
 
 
 calc:
 
+challange:
+- [n] lets add a 'start' button to the unfolded challange chip for the child dashboard, that will que the required settings, tafel + difficulty challange setup

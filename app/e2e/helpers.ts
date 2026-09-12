@@ -82,3 +82,30 @@ export async function playMathSessionCorrectly(page: Page, tables: number[], cou
   await page.click("#math-summary-done");
   await page.waitForSelector("#view-home:not([hidden])");
 }
+
+/** Plays a full Gemiddeld/Moeilijk (numpad) math session, answering every question correctly on the first try. */
+export async function playMathSessionOnNumpad(page: Page, tables: number[], count: 5 | 10 | 20, difficultyLabel: "Gemiddeld" | "Moeilijk") {
+  await page.click("#start-math-button");
+  for (const table of tables) {
+    await page.click(`#table-picker button:text-is('${table}')`);
+  }
+  await page.click(`#count-picker button:text-is('${count}')`);
+  await page.click(`.difficulty-button:has-text('${difficultyLabel}')`);
+  await page.click("#math-start-button");
+  await page.waitForSelector("#view-math-exercise:not([hidden])");
+
+  for (let i = 0; i < count; i++) {
+    const qText = await page.$eval("#math-question", (el) => el.textContent ?? "");
+    const match = qText.match(/(\d+)\s*×\s*(\d+)/);
+    if (!match) throw new Error(`Could not parse math question: "${qText}"`);
+    const answer = String(Number(match[1]) * Number(match[2]));
+    for (const digit of answer) {
+      await page.click(`#math-pad button:text-is('${digit}')`);
+    }
+    await page.click("#math-pad .submit-button");
+    await page.waitForTimeout(1100); // AUTO_ADVANCE_MS + margin
+  }
+  await page.waitForSelector("#view-math-summary:not([hidden])", { timeout: 5000 });
+  await page.click("#math-summary-done");
+  await page.waitForSelector("#view-home:not([hidden])");
+}

@@ -16,22 +16,43 @@ function factConfidence(correct: number, total: number, avgElapsedMs: number | n
   return Math.round(accuracy * speedFactor * 100);
 }
 
-async function computeTableConfidenceProgress(childId: number, tableNumbers: number[]): Promise<number> {
-  if (tableNumbers.length === 0) return 0;
+// Higher tiers satisfy lower requirements: an attempt made on "hard" counts
+// toward a challenge that only required "medium", but a "easy" attempt
+// never counts toward anything above "easy". A missing difficulty (attempts
+// logged before this was tracked) is treated as the lowest tier, so it only
+// ever satisfies an "easy" requirement.
+const DIFFICULTY_RANK: Record<string, number> = { easy: 0, medium: 1, hard: 2 };
 
-  const rows = await db
+async function computeTableConfidenceProgress(childId: number, tableNumbers: number[], requiredDifficulty: string): Promise<number> {
+  if (tableNumbers.length === 0) return 0;
+  const requiredRank = DIFFICULTY_RANK[requiredDifficulty] ?? 0;
+
+  const rawAttempts = await db
     .select({
       tableNumber: mathAttempts.tableNumber,
       operandB: mathAttempts.operandB,
-      total: sql<number>`count(*)`,
-      correct: sql<number>`sum(${mathAttempts.correct})`,
-      avgElapsedMs: sql<number | null>`avg(${mathAttempts.elapsedMs})`,
+      correct: mathAttempts.correct,
+      elapsedMs: mathAttempts.elapsedMs,
+      difficulty: mathAttempts.difficulty,
     })
     .from(mathAttempts)
-    .where(and(eq(mathAttempts.childId, childId), inArray(mathAttempts.tableNumber, tableNumbers)))
-    .groupBy(mathAttempts.tableNumber, mathAttempts.operandB);
+    .where(and(eq(mathAttempts.childId, childId), inArray(mathAttempts.tableNumber, tableNumbers)));
 
-  const byFact = new Map(rows.map((r) => [`${r.tableNumber}x${r.operandB}`, r]));
+  const byFact = new Map<string, { total: number; correct: number; elapsedSum: number; elapsedCount: number }>();
+  for (const attempt of rawAttempts) {
+    const rank = DIFFICULTY_RANK[attempt.difficulty ?? "easy"] ?? 0;
+    if (rank < requiredRank) continue;
+
+    const key = `${attempt.tableNumber}x${attempt.operandB}`;
+    const entry = byFact.get(key) ?? { total: 0, correct: 0, elapsedSum: 0, elapsedCount: 0 };
+    entry.total++;
+    if (attempt.correct) entry.correct++;
+    if (attempt.elapsedMs != null) {
+      entry.elapsedSum += attempt.elapsedMs;
+      entry.elapsedCount++;
+    }
+    byFact.set(key, entry);
+  }
 
   // Untried facts count as 0, not "skipped" — otherwise a challenge could be
   // completed by only drilling the easy facts in a table and ignoring the
@@ -41,7 +62,8 @@ async function computeTableConfidenceProgress(childId: number, tableNumbers: num
   for (const tableNumber of tableNumbers) {
     for (let multiplier = 1; multiplier <= 10; multiplier++) {
       const fact = byFact.get(`${tableNumber}x${multiplier}`);
-      sum += fact ? factConfidence(fact.correct, fact.total, fact.avgElapsedMs) : 0;
+      const avgElapsedMs = fact && fact.elapsedCount > 0 ? fact.elapsedSum / fact.elapsedCount : null;
+      sum += fact ? factConfidence(fact.correct, fact.total, avgElapsedMs) : 0;
       count++;
     }
   }
@@ -91,7 +113,7 @@ async function evaluateChallenge(challenge: ChallengeRow): Promise<{ progress: n
   }
 
   const tableNumbers = await getChallengeTableNumbers(challenge.id);
-  const progress = await computeTableConfidenceProgress(challenge.childId, tableNumbers);
+  const progress = await computeTableConfidenceProgress(challenge.childId, tableNumbers, challenge.requiredDifficulty ?? "easy");
   const target = challenge.targetConfidence ?? 0;
   let completedAt = challenge.completedAt;
   if (!completedAt && progress >= target) {
@@ -132,6 +154,7 @@ async function listChallengesWithProgress(childId: number) {
         countsMath: row.countsMath,
         countsTyping: row.countsTyping,
         targetConfidence: row.targetConfidence,
+        requiredDifficulty: row.requiredDifficulty,
         tableNumbers: evaluated.tableNumbers,
         createdAt: row.createdAt,
         startedAt: row.startedAt,
@@ -150,6 +173,7 @@ type CreateChallengeBody = {
   countsMath?: boolean;
   countsTyping?: boolean;
   targetConfidence?: number;
+  requiredDifficulty?: string;
   tableNumbers?: number[];
 };
 
@@ -200,6 +224,9 @@ export default async function challengesRoutes(app: FastifyInstance) {
       if (tableNumbers.length === 0 || !Number.isFinite(body.targetConfidence) || body.targetConfidence! <= 0 || body.targetConfidence! > 100) {
         return reply.code(400).send({ error: "invalid_request" });
       }
+      const requiredDifficulty: "easy" | "medium" | "hard" = ["easy", "medium", "hard"].includes(body.requiredDifficulty ?? "")
+        ? (body.requiredDifficulty as "easy" | "medium" | "hard")
+        : "easy";
       const [row] = await db
         .insert(challenges)
         .values({
@@ -208,6 +235,7 @@ export default async function challengesRoutes(app: FastifyInstance) {
           type: "table_confidence",
           stickerId: body.stickerId,
           targetConfidence: Math.round(body.targetConfidence!),
+          requiredDifficulty,
         })
         .returning();
       await db.insert(challengeTables).values(tableNumbers.map((tableNumber) => ({ challengeId: row.id, tableNumber })));

@@ -18,6 +18,7 @@ type Stats = {
     completedCount: number | null;
     score: number | null;
     startedAt: string;
+    difficulty: string | null;
   }[];
 };
 
@@ -29,11 +30,14 @@ type Challenge = {
   countsMath: boolean | null;
   countsTyping: boolean | null;
   targetConfidence: number | null;
+  requiredDifficulty: string | null;
   tableNumbers?: number[];
   completedAt: string | null;
   progress: number;
   target: number;
 };
+
+const DIFFICULTY_LABELS: Record<string, string> = { easy: "Makkelijk", medium: "Gemiddeld", hard: "Moeilijk" };
 
 /**
  * Combines accuracy and speed into one 0-100 score: a fact answered
@@ -312,8 +316,9 @@ function renderRecentSessions(sessions: Stats["recentSessions"]): string {
         session.status === "completed"
           ? `<span class="session-outcome session-completed">Afgerond${session.score !== null ? `: ${Math.round(session.score)}%` : ""}</span>`
           : `<span class="session-outcome session-aborted">Afgebroken: ${session.completedCount ?? 0}/${session.targetCount ?? "?"}</span>`;
+      const difficulty = session.difficulty ? ` (${DIFFICULTY_LABELS[session.difficulty] ?? session.difficulty})` : "";
       return `<div class="session-row">
-        <span class="session-module">${MODULE_LABELS[session.module] ?? session.module}</span>
+        <span class="session-module">${MODULE_LABELS[session.module] ?? session.module}${difficulty}</span>
         <span class="session-date">${formatSessionDate(session.startedAt)}</span>
         ${outcome}
       </div>`;
@@ -338,7 +343,8 @@ function challengeLabel(challenge: Challenge): string {
     return `${modules}: ${challenge.progress}/${challenge.target} min`;
   }
   const tables = (challenge.tableNumbers ?? []).join(", ");
-  return `Tafel${(challenge.tableNumbers ?? []).length > 1 ? "s" : ""} ${tables}: ${challenge.progress}/${challenge.target}%`;
+  const difficultyLabel = DIFFICULTY_LABELS[challenge.requiredDifficulty ?? "easy"] ?? "Makkelijk";
+  return `Tafel${(challenge.tableNumbers ?? []).length > 1 ? "s" : ""} ${tables} (${difficultyLabel} of hoger): ${challenge.progress}/${challenge.target}%`;
 }
 
 function renderChallenges(childId: number, challenges: Challenge[]): string {
@@ -389,6 +395,13 @@ function renderChallenges(childId: number, challenges: Challenge[]): string {
         <label>Welke tafels?</label>
         <div class="challenge-table-picker">${tableButtons}</div>
         <label>Doel zelfvertrouwen (%) <input type="number" class="challenge-target-confidence" min="1" max="100" value="80" /></label>
+        <label>Vereiste moeilijkheidsgraad
+          <select class="challenge-required-difficulty">
+            <option value="easy" selected>Makkelijk (of hoger)</option>
+            <option value="medium">Gemiddeld (of hoger)</option>
+            <option value="hard">Moeilijk</option>
+          </select>
+        </label>
       </div>
 
       <label>Beloning</label>
@@ -563,6 +576,7 @@ function wireChallengeControls(card: HTMLElement, childId: number) {
     } else {
       body.tableNumbers = Array.from(form.querySelectorAll<HTMLButtonElement>(".challenge-table-button.selected")).map((b) => Number(b.dataset.table));
       body.targetConfidence = Number((form.querySelector(".challenge-target-confidence") as HTMLInputElement).value);
+      body.requiredDifficulty = (form.querySelector(".challenge-required-difficulty") as HTMLSelectElement).value;
     }
 
     const res = await fetch(`/api/parent/children/${childId}/challenges`, {
