@@ -1,3 +1,6 @@
+import { showView } from "./views.js";
+import { startMathSettings } from "./math.js";
+
 type Avatar = { id: number; name: string; avatarId: string };
 
 const AVATAR_EMOJI: Record<string, string> = {
@@ -11,18 +14,6 @@ const AVATAR_EMOJI: Record<string, string> = {
 
 function emojiFor(avatarId: string): string {
   return AVATAR_EMOJI[avatarId] ?? "🙂";
-}
-
-const views = {
-  avatars: document.getElementById("view-avatars") as HTMLElement,
-  pin: document.getElementById("view-pin") as HTMLElement,
-  home: document.getElementById("view-home") as HTMLElement,
-};
-
-function showView(name: keyof typeof views) {
-  for (const key of Object.keys(views) as (keyof typeof views)[]) {
-    views[key].hidden = key !== name;
-  }
 }
 
 let selectedChild: Avatar | null = null;
@@ -64,7 +55,7 @@ function selectChild(avatar: Avatar) {
   selectedChild = avatar;
   pinHeadingEl.textContent = `Hoi ${avatar.name}, wat is je geheime code?`;
   resetPin();
-  showView("pin");
+  showView("view-pin");
 }
 
 async function submitPin() {
@@ -84,7 +75,7 @@ async function submitPin() {
 
   const child = await res.json();
   document.getElementById("home-greeting")!.textContent = `Hallo, ${child.name}!`;
-  showView("home");
+  showView("view-home");
 }
 
 function buildPinPad() {
@@ -120,18 +111,22 @@ function buildPinPad() {
 
 document.getElementById("pin-back")!.addEventListener("click", () => {
   selectedChild = null;
-  showView("avatars");
+  showView("view-avatars");
 });
 
 document.getElementById("logout-button")!.addEventListener("click", async () => {
   await fetch("/api/child/logout", { method: "POST" });
   selectedChild = null;
-  showView("avatars");
+  showView("view-avatars");
   loadAvatars();
 });
 
 document.getElementById("parent-icon")!.addEventListener("click", () => {
   alert("Het ouderportaal komt in een volgende stap.");
+});
+
+document.getElementById("start-math-button")!.addEventListener("click", () => {
+  startMathSettings();
 });
 
 async function init() {
@@ -141,12 +136,12 @@ async function init() {
   if (meRes.ok) {
     const child = await meRes.json();
     document.getElementById("home-greeting")!.textContent = `Hallo, ${child.name}!`;
-    showView("home");
+    showView("view-home");
     return;
   }
 
   await loadAvatars();
-  showView("avatars");
+  showView("view-avatars");
 }
 
 init();

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, primaryKey, index } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 export const parents = sqliteTable("parents", {
@@ -27,4 +27,39 @@ export const parentChild = sqliteTable(
       .references(() => children.id),
   },
   (table) => [primaryKey({ columns: [table.parentId, table.childId] })],
+);
+
+export const practiceSessions = sqliteTable(
+  "practice_sessions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    childId: integer("child_id")
+      .notNull()
+      .references(() => children.id),
+    module: text("module", { enum: ["math", "typing"] }).notNull(),
+    startedAt: text("started_at").notNull().default(sql`(current_timestamp)`),
+    endedAt: text("ended_at"),
+    durationSeconds: integer("duration_seconds"),
+  },
+  (table) => [index("practice_sessions_child_idx").on(table.childId, table.startedAt)],
+);
+
+export const mathAttempts = sqliteTable(
+  "math_attempts",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    sessionId: integer("session_id")
+      .notNull()
+      .references(() => practiceSessions.id),
+    childId: integer("child_id")
+      .notNull()
+      .references(() => children.id),
+    tableNumber: integer("table_number").notNull(),
+    operandA: integer("operand_a").notNull(),
+    operandB: integer("operand_b").notNull(),
+    correct: integer("correct", { mode: "boolean" }).notNull(),
+    hintUsed: integer("hint_used", { mode: "boolean" }).notNull().default(false),
+    answeredAt: text("answered_at").notNull().default(sql`(current_timestamp)`),
+  },
+  (table) => [index("math_attempts_child_idx").on(table.childId, table.answeredAt)],
 );

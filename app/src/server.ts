@@ -4,6 +4,7 @@ import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import sessionPlugin from "./auth/session.js";
 import childRoutes from "./routes/child.js";
+import mathRoutes from "./routes/math.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -17,6 +18,7 @@ await app.register(fastifyStatic, {
   root: join(__dirname, "..", "public"),
 });
 await app.register(childRoutes);
+await app.register(mathRoutes);
 
 app.get("/healthz", async () => ({ status: "ok" }));
 

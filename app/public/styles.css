@@ -144,6 +144,121 @@ h1 {
   cursor: pointer;
 }
 
+.big-button {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  margin: 12px auto;
+  font-size: 1.4rem;
+  padding: 20px;
+  border: none;
+  border-radius: 16px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--accent-dark);
+}
+
+.big-button:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--accent-dark);
+}
+
+.big-button:disabled {
+  background: #bbb;
+  box-shadow: 0 4px 0 #999;
+  cursor: not-allowed;
+}
+
+.table-picker,
+.count-picker {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  max-width: 400px;
+  margin: 0 auto 24px;
+}
+
+.table-button,
+.count-button {
+  font-size: 1.3rem;
+  padding: 16px 0;
+  border: 3px solid var(--accent);
+  border-radius: 12px;
+  background: white;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.table-button.selected,
+.count-button.selected {
+  background: var(--accent);
+  color: white;
+}
+
+.hint-toggle {
+  display: block;
+  font-size: 1.1rem;
+  margin: 20px 0;
+}
+
+.hint-toggle input {
+  width: 24px;
+  height: 24px;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.progress {
+  color: #888;
+  font-weight: bold;
+}
+
+.hint-button {
+  font-size: 1rem;
+  padding: 8px 20px;
+  border: 2px solid var(--accent);
+  border-radius: 20px;
+  background: white;
+  color: var(--accent);
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+.hint-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+  font-size: 1.2rem;
+}
+
+.answer-display {
+  font-size: 2.2rem;
+  font-weight: bold;
+  min-height: 2.6rem;
+  letter-spacing: 4px;
+}
+
+.math-feedback {
+  font-size: 1.3rem;
+  font-weight: bold;
+}
+
+.math-feedback.correct {
+  color: #2f9e44;
+}
+
+.math-feedback.incorrect {
+  color: var(--error);
+}
+
+.submit-button {
+  grid-column: span 3;
+  background: #2f9e44 !important;
+  box-shadow: 0 4px 0 #217a34 !important;
+}
+
 #parent-icon {
   position: fixed;
   bottom: 12px;
