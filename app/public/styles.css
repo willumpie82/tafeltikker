@@ -1,0 +1,159 @@
+:root {
+  color-scheme: light;
+  --bg: #fdf6e3;
+  --ink: #2d2d2d;
+  --accent: #4f8ef7;
+  --accent-dark: #2f6fd6;
+  --error: #d64545;
+  font-size: 20px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Comic Sans MS", "Trebuchet MS", system-ui, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+#app {
+  width: 100%;
+  max-width: 640px;
+  text-align: center;
+}
+
+h1 {
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+}
+
+.view[hidden] {
+  display: none;
+}
+
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 20px;
+}
+
+.avatar-button {
+  font-size: 3rem;
+  background: white;
+  border: 4px solid transparent;
+  border-radius: 24px;
+  padding: 20px 10px;
+  cursor: pointer;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.1);
+}
+
+.avatar-button:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.1);
+}
+
+.avatar-button .name {
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.pin-dots {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  display: inline-block;
+}
+
+.dot.filled {
+  background: var(--accent);
+}
+
+.pin-error {
+  color: var(--error);
+  font-weight: bold;
+}
+
+.pin-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.pin-pad button {
+  font-size: 1.8rem;
+  padding: 20px 0;
+  border: none;
+  border-radius: 16px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--accent-dark);
+}
+
+.pin-pad button:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--accent-dark);
+}
+
+.pin-pad button.empty {
+  visibility: hidden;
+}
+
+.back-button {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  font-size: 1.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+#logout-button {
+  margin-top: 24px;
+  font-size: 1.1rem;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 12px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}
+
+#parent-icon {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 1.1rem;
+  cursor: pointer;
+}

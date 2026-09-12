@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>Tafeltikker</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main id="app">
+      <section id="view-avatars" class="view">
+        <h1>Wie ben jij?</h1>
+        <div id="avatar-grid" class="avatar-grid"></div>
+      </section>
+
+      <section id="view-pin" class="view" hidden>
+        <button type="button" id="pin-back" class="back-button" aria-label="Terug">&larr;</button>
+        <h1 id="pin-heading">Wat is je geheime code?</h1>
+        <div id="pin-dots" class="pin-dots">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        </div>
+        <p id="pin-error" class="pin-error" hidden>Dat is niet de goede code, probeer nog eens.</p>
+        <div id="pin-pad" class="pin-pad"></div>
+      </section>
+
+      <section id="view-home" class="view" hidden>
+        <h1 id="home-greeting">Hallo!</h1>
+        <p>Hier komen straks de oefeningen.</p>
+        <button type="button" id="logout-button">Uitloggen</button>
+      </section>
+    </main>
+
+    <button type="button" id="parent-icon" aria-label="Ouderportaal">&#9881;</button>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

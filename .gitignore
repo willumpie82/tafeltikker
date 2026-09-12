@@ -1,5 +1,7 @@
 node_modules/
 dist/
+app/public/app.js
+app/public/app.js.map
 *.sqlite
 *.sqlite-journal
 *.sqlite-shm
@@ -9,3 +11,4 @@ dist/
 !.env.example
 *.log
 .DS_Store
+.claude/
