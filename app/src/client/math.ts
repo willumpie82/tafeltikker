@@ -3,7 +3,7 @@ import { setupAutoAdvance } from "./next-button.js";
 import { guardedFetch } from "./session-guard.js";
 
 type Question = { tableNumber: number; operandA: number; operandB: number };
-type Difficulty = "easy" | "medium" | "hard";
+export type Difficulty = "easy" | "medium" | "hard";
 type SessionMode = "count" | "time";
 
 const COUNT_OPTIONS = [5, 10, 20];
@@ -314,6 +314,14 @@ export function startMathSettings() {
   buildDifficultyPicker();
   startButtonEl.disabled = selectedTables.size === 0;
   showView("view-math-settings");
+}
+
+/** Pre-selects tables + difficulty (e.g. from a challenge's requirements) before opening settings. */
+export function queueMathSettings(tables: number[], difficulty: Difficulty) {
+  selectedTables.clear();
+  for (const table of tables) selectedTables.add(table);
+  selectedDifficulty = difficulty;
+  startMathSettings();
 }
 
 function shuffled<T>(items: T[]): T[] {

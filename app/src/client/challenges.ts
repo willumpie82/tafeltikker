@@ -1,4 +1,5 @@
 import { stickerFor } from "./stickers.js";
+import { queueMathSettings, type Difficulty } from "./math.js";
 
 type Challenge = {
   id: number;
@@ -46,6 +47,14 @@ function renderChip(challenge: Challenge): string {
   const description = describeChallenge(challenge);
   const rewardLine = done ? `Je hebt gewonnen: ${sticker.icon} ${sticker.label}` : `Beloning: ${sticker.icon} ${sticker.label}`;
 
+  // Only table_confidence challenges have concrete exercise settings
+  // (tables + difficulty) worth queuing up — time_played doesn't pin down
+  // which module to practice or what to drill.
+  const startButton =
+    !done && challenge.type === "table_confidence"
+      ? `<button type="button" class="challenge-start-button" data-challenge="${challenge.id}">Start deze uitdaging &rarr;</button>`
+      : "";
+
   return `<div class="challenge-chip ${done ? "done" : ""}" title="${description}">
     <span class="challenge-chip-icon">${sticker.icon}</span>
     <div class="challenge-chip-bar"><div class="challenge-chip-fill" style="width:${done ? 100 : pct}%"></div></div>
@@ -53,6 +62,7 @@ function renderChip(challenge: Challenge): string {
     <div class="challenge-chip-detail" hidden>
       <p>${description}</p>
       <p class="challenge-chip-reward">${rewardLine}</p>
+      ${startButton}
     </div>
   </div>`;
 }
@@ -65,6 +75,7 @@ export async function refreshChallengeWidget() {
     return;
   }
   const challenges: Challenge[] = await res.json();
+  const challengesById = new Map(challenges.map((c) => [c.id, c]));
   widgetEl.classList.toggle("empty", challenges.length === 0);
   widgetEl.innerHTML = challenges.map(renderChip).join("");
 
@@ -78,6 +89,15 @@ export async function refreshChallengeWidget() {
       const willOpen = detail.hidden;
       widgetEl.querySelectorAll<HTMLElement>(".challenge-chip-detail").forEach((d) => (d.hidden = true));
       detail.hidden = !willOpen;
+    });
+  });
+
+  widgetEl.querySelectorAll<HTMLButtonElement>(".challenge-start-button").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation(); // don't also toggle the detail panel closed
+      const challenge = challengesById.get(Number(button.dataset.challenge));
+      if (!challenge) return;
+      queueMathSettings(challenge.tableNumbers ?? [], (challenge.requiredDifficulty as Difficulty) ?? "easy");
     });
   });
 }

@@ -722,3 +722,17 @@ h1 {
 .challenge-chip-reward {
   font-weight: bold;
 }
+
+.challenge-start-button {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  cursor: pointer;
+}

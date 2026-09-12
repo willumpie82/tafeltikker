@@ -23,6 +23,21 @@ test.describe.serial("challenge module", () => {
     await expect(row.locator(".status-badge")).toHaveCount(0);
   });
 
+  test("the chip's start button queues the challenge's table and difficulty in math settings", async ({ page }) => {
+    await loginAsChild(page, "Sam");
+
+    const chip = page.locator(".challenge-chip").first();
+    await chip.click();
+    await chip.locator(".challenge-start-button").click();
+
+    await page.waitForSelector("#view-math-settings:not([hidden])");
+    await expect(page.locator("#table-picker button.selected")).toHaveText("7");
+    // The "Tafel 7" challenge was created in the first test without picking
+    // a difficulty, so it used the form's default — Makkelijk (any tier
+    // counts), per requiredDifficulty defaulting to "easy".
+    await expect(page.locator(".difficulty-button.selected .difficulty-label")).toHaveText("Makkelijk");
+  });
+
   test("playing correctly on the targeted table completes it", async ({ page, browser }) => {
     const childPage = await browser.newPage();
     await loginAsChild(childPage, "Sam");

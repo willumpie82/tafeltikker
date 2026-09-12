@@ -161,7 +161,13 @@ map, no asset management needed.
   attribute shows the full requirement + current progress on hover
   (desktop), and tapping the chip toggles a detail panel with the same text
   plus the reward line (e.g. "Word 80% zeker van tafels 3, 4 — je zit nu op
-  62%." / "Beloning: 🍪 Koekje"), collapsing again on a second tap.
+  62%." / "Beloning: 🍪 Koekje"), collapsing again on a second tap. An
+  incomplete table-confidence challenge's detail panel also has a "Start
+  deze uitdaging →" button (`math.ts`'s `queueMathSettings(tables,
+  difficulty)`) that pre-selects that challenge's exact tables and required
+  difficulty before opening math settings, so the child lands ready to just
+  press Start — not offered for time_played, which doesn't pin down a
+  single module/table to queue, or once a challenge is already completed.
 
 ## Deferred (explicitly out of scope for v1)
 - **Per-group challenges** (a teacher/group-admin issuing one challenge to
