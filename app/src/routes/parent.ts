@@ -169,12 +169,28 @@ export default async function parentRoutes(app: FastifyInstance) {
       .where(eq(typingAttempts.childId, childId))
       .groupBy(typingAttempts.level);
 
+    // Per individual prompt (one letter/word/sentence) — same idea as
+    // perFact for math, so the dashboard can show which specific prompts
+    // are still shaky within a level, not just the level as a whole.
+    const perTypingPrompt = await db
+      .select({
+        level: typingAttempts.level,
+        promptText: typingAttempts.promptText,
+        total: sql<number>`count(*)`,
+        avgAccuracy: sql<number>`round(avg(${typingAttempts.accuracy}), 1)`,
+        avgWpm: sql<number>`round(avg(${typingAttempts.wpm}), 1)`,
+      })
+      .from(typingAttempts)
+      .where(eq(typingAttempts.childId, childId))
+      .groupBy(typingAttempts.level, typingAttempts.promptText);
+
     return {
       time: timeRow,
       perTable,
       perFact,
       trend,
       perTypingLevel,
+      perTypingPrompt,
     };
   });
 

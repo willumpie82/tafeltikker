@@ -300,6 +300,24 @@ button#logout-button {
   text-align: center;
   font-size: 0.65rem;
   color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Typing prompts can be many (up to 26 letters) and vary in label length,
+   so unlike the fixed 10-wide math fact row they wrap instead of squeezing
+   every bar into one line. */
+.prompt-bar-row {
+  flex-wrap: wrap;
+  height: auto;
+  row-gap: 20px;
+  padding-bottom: 4px;
+}
+
+.prompt-bar-row .fact-bar {
+  flex: 0 0 28px;
+  height: 50px;
 }
 
 .trend-row {

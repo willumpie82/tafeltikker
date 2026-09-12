@@ -27,6 +27,7 @@ the note on how/why it was resolved.
 ## parent dashboard
 - [x] progress per mode % correct per challange (letters, woorden, zinnen, sommen per tafel reeks) — Sommen (per-table) and Typen (per-level: letters/woorden/zinnen) both shown now
 - [x] developer feedback system — parent dashboard has a feedback textarea + list, backed by a `feedback` table scoped per parent
+- [x] bring the same per-item confidence breakdown built for "Sommen" to "Typen" (per-word/letter/sentence accuracy+speed, collapsible) — same "meer ↓"/"minder ↑" pattern as the math fact bars, one row per typing level (Letters/Woorden/Zinnetjes) with a bar per individual prompt from that level's full pool (26 letters/20 words/10 sentences), untried prompts shown as empty placeholders. Confidence formula mirrors `factConfidence` but WPM-based instead of elapsed-ms-based (20 wpm treated as a confident pace for a young typist). Since prompt counts and label lengths vary a lot more than the fixed 10-wide math grid, this row wraps onto multiple lines instead of squeezing into one. Verified with Playwright: played 5 "Letters" prompts as one child and confirmed the dashboard shows exactly 5 non-empty bars out of 26 with the right letters lit up; played "Woorden" with a deliberate typo+correction on 3 of 5 words as the other child and confirmed the stored accuracy (80%/83.3%) is reflected instead of 100%.
 
 ## typing
 - [x] add warming up mode — see the more specific follow-up below; both refer to the same implementation

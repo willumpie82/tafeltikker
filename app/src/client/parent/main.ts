@@ -1,4 +1,5 @@
 import { emojiFor, buildAvatarPicker } from "../avatars.js";
+import { PROMPT_POOLS, type TypingLevel } from "../typing-content.js";
 
 type Child = { id: number; name: string; avatarId: string };
 type Stats = {
@@ -7,6 +8,7 @@ type Stats = {
   perFact: { tableNumber: number; operandB: number; total: number; correct: number; avgElapsedMs: number | null }[];
   trend: { day: string; total: number; correct: number }[];
   perTypingLevel: { level: string; total: number; avgAccuracy: number; avgWpm: number }[];
+  perTypingPrompt: { level: string; promptText: string; total: number; avgAccuracy: number; avgWpm: number }[];
 };
 
 /**
@@ -18,6 +20,16 @@ type Stats = {
 function factConfidence(correct: number, total: number, avgElapsedMs: number | null): number {
   const accuracy = total > 0 ? correct / total : 0;
   const speedFactor = avgElapsedMs ? Math.min(1, Math.max(0.5, 3000 / avgElapsedMs)) : 1;
+  return Math.round(accuracy * speedFactor * 100);
+}
+
+// Same idea as factConfidence but WPM-based: 20 wpm is treated as a
+// confident pace for a young typist, never penalized below half credit
+// purely for being slow since accuracy still matters most.
+const CONFIDENT_WPM = 20;
+function typingConfidence(avgAccuracy: number, avgWpm: number): number {
+  const accuracy = avgAccuracy / 100;
+  const speedFactor = Math.min(1, Math.max(0.5, avgWpm / CONFIDENT_WPM));
   return Math.round(accuracy * speedFactor * 100);
 }
 
@@ -205,16 +217,51 @@ function renderTrend(trend: Stats["trend"]): string {
     .join("")}</div>`;
 }
 
-function renderTypingLevels(perTypingLevel: Stats["perTypingLevel"]): string {
+function renderTypingLevels(perTypingLevel: Stats["perTypingLevel"], perTypingPrompt: Stats["perTypingPrompt"]): string {
   if (perTypingLevel.length === 0) {
     return `<p class="no-data">Nog geen typen geoefend.</p>`;
   }
+
+  const promptsByLevel = new Map<string, Stats["perTypingPrompt"]>();
+  for (const row of perTypingPrompt) {
+    const list = promptsByLevel.get(row.level) ?? [];
+    list.push(row);
+    promptsByLevel.set(row.level, list);
+  }
+
   return `<div class="table-accuracy-list">${perTypingLevel
     .map((row) => {
       const label = TYPING_LEVEL_LABELS[row.level] ?? row.level;
+      const statsByPrompt = new Map((promptsByLevel.get(row.level) ?? []).map((p) => [p.promptText, p]));
+      const pool = PROMPT_POOLS[row.level as TypingLevel] ?? [];
+
+      const promptBars = pool
+        .map((promptText) => {
+          const stat = statsByPrompt.get(promptText);
+          const shortLabel = promptText.length > 3 ? promptText.slice(0, 3) : promptText;
+          if (!stat) {
+            return `<div class="fact-bar fact-bar-empty" title="${promptText}: nog niet geoefend">
+              <span class="fact-bar-label">${shortLabel}</span>
+            </div>`;
+          }
+          const confidence = typingConfidence(stat.avgAccuracy, stat.avgWpm);
+          const tier = confidence >= 80 ? "high" : confidence >= 50 ? "medium" : "low";
+          return `<div class="fact-bar" title="${promptText}: ${stat.avgAccuracy}% nauwkeurig, ${stat.avgWpm} wpm (${stat.total}x)">
+            <div class="fact-bar-fill ${tier}" style="height:${confidence}%"></div>
+            <span class="fact-bar-label">${shortLabel}</span>
+          </div>`;
+        })
+        .join("");
+
       return `<div class="table-accuracy-row">
-        ${label}: ${row.avgAccuracy}% nauwkeurig, ${row.avgWpm} wpm (${row.total}x)
+        <div class="table-accuracy-summary">
+          <span>${label}: ${row.avgAccuracy}% nauwkeurig, ${row.avgWpm} wpm (${row.total}x)</span>
+          <button type="button" class="table-facts-toggle" data-table="level-${row.level}">meer &darr;</button>
+        </div>
         <div class="accuracy-bar"><div class="accuracy-bar-fill" style="width:${row.avgAccuracy}%"></div></div>
+        <div class="table-facts-detail" data-table-detail="level-${row.level}" hidden>
+          <div class="fact-bar-row prompt-bar-row">${promptBars}</div>
+        </div>
       </div>`;
     })
     .join("")}</div>`;
@@ -291,7 +338,7 @@ async function renderChildCard(child: Child): Promise<HTMLElement> {
     ${renderTableAccuracy(stats.perTable, stats.perFact)}
     ${renderTrend(stats.trend)}
     <h3>Typen</h3>
-    ${renderTypingLevels(stats.perTypingLevel)}
+    ${renderTypingLevels(stats.perTypingLevel, stats.perTypingPrompt)}
   `;
 
   // Toggling only shows/hides bars already rendered above — no new DOM
