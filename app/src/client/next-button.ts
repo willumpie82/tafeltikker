@@ -30,7 +30,17 @@ export function setupAutoAdvance(button: HTMLButtonElement, durationMs: number, 
     timeoutId = window.setTimeout(advanceOnce, durationMs);
   }
 
+  /** Makes the button clickable without starting the auto-advance timer. */
+  function ready() {
+    fired = false;
+    cancel();
+    if (fill) {
+      fill.style.transition = "none";
+      fill.style.width = "0%";
+    }
+  }
+
   button.addEventListener("click", advanceOnce);
 
-  return { start, cancel };
+  return { start, cancel, ready };
 }

@@ -35,6 +35,9 @@ let queue: string[] = [];
 let currentIndex = 0;
 let startTime = 0;
 let answered = false;
+let previousTypedLength = 0;
+let totalKeystrokes = 0;
+let correctKeystrokes = 0;
 let idleTimeoutId: number | undefined;
 
 const results: { accuracy: number; wpm: number }[] = [];
@@ -204,6 +207,9 @@ function showPrompt() {
   progressBarFillEl.style.width = `${(currentIndex / queue.length) * 100}%`;
   answered = false;
   startTime = 0;
+  previousTypedLength = 0;
+  totalKeystrokes = 0;
+  correctKeystrokes = 0;
   inputEl.value = "";
   inputEl.maxLength = prompt.length;
   inputEl.disabled = false;
@@ -222,11 +228,25 @@ async function handleTypedChange() {
   if (startTime === 0) startTime = performance.now();
 
   const typed = inputEl.value;
+  const prompt = queue[currentIndex];
+
+  // Track every character actually typed (not just the final result) so a
+  // typo that gets backspaced and corrected still counts against accuracy —
+  // comparing only the final submitted string always reads 100% otherwise.
+  // Length-diff based (not the input event's inputType) so this covers both
+  // physical typing and the on-screen keyboard, which calls this directly.
+  if (typed.length > previousTypedLength) {
+    for (let pos = previousTypedLength; pos < typed.length; pos++) {
+      totalKeystrokes++;
+      if (typed[pos] === prompt[pos]) correctKeystrokes++;
+    }
+  }
+  previousTypedLength = typed.length;
+
   renderPrompt(typed);
   clearKeyHighlight();
   resetIdleTimer();
 
-  const prompt = queue[currentIndex];
   // auto-continue once it's actually correct; a typo (even at the last
   // character) just stays editable — Backspace still works — until Enter.
   if (typed.length >= prompt.length && typed === prompt) {
@@ -265,7 +285,14 @@ async function submitAttempt(typed: string) {
   const res = await fetch(`/api/child/typing/sessions/${sessionId}/attempts`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ level: selectedLevel, promptText: prompt, typedText: typed, elapsedMs }),
+    body: JSON.stringify({
+      level: selectedLevel,
+      promptText: prompt,
+      typedText: typed,
+      elapsedMs,
+      totalKeystrokes,
+      correctKeystrokes,
+    }),
   });
   const result = await res.json();
   results.push(result);

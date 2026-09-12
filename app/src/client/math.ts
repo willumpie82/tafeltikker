@@ -355,6 +355,7 @@ async function finalizeAttempt(answerValue: number, hintUsed: boolean) {
   // if a hint was shown earlier (e.g. Gemiddeld's pre-last-try hint).
   if (hintUsedForCurrent && !result.correct) {
     nextHintEl.hidden = false;
+    nextAdvance.ready();
   } else {
     nextAdvance.start();
   }
