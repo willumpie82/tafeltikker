@@ -184,6 +184,24 @@ export default async function parentRoutes(app: FastifyInstance) {
       .where(eq(typingAttempts.childId, childId))
       .groupBy(typingAttempts.level, typingAttempts.promptText);
 
+    // Last runs (either module), newest first — sessions never explicitly
+    // finished (browser closed mid-exercise) have no status and are left
+    // out rather than shown as a misleading "completed".
+    const recentSessions = await db
+      .select({
+        id: practiceSessions.id,
+        module: practiceSessions.module,
+        status: practiceSessions.status,
+        targetCount: practiceSessions.targetCount,
+        completedCount: practiceSessions.completedCount,
+        score: practiceSessions.score,
+        startedAt: practiceSessions.startedAt,
+      })
+      .from(practiceSessions)
+      .where(and(eq(practiceSessions.childId, childId), sql`${practiceSessions.status} is not null`))
+      .orderBy(desc(practiceSessions.startedAt))
+      .limit(10);
+
     return {
       time: timeRow,
       perTable,
@@ -191,6 +209,7 @@ export default async function parentRoutes(app: FastifyInstance) {
       trend,
       perTypingLevel,
       perTypingPrompt,
+      recentSessions,
     };
   });
 

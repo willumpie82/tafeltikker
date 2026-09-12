@@ -459,16 +459,23 @@ function buildMathPad() {
   mathPadEl.appendChild(submitButton);
 }
 
+async function finishSession(outcome: { status: "completed" | "aborted"; completedCount: number; score?: number }) {
+  if (sessionId === null) return;
+  await fetch(`/api/child/math/sessions/${sessionId}/finish`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ targetCount, ...outcome }),
+  });
+}
+
 async function advanceToNext() {
   currentIndex++;
   if (correctCount >= targetCount) {
-    if (sessionId !== null) {
-      await fetch(`/api/child/math/sessions/${sessionId}/finish`, { method: "POST" });
-    }
     const tryWeight = (tryNumber: number) => (tryNumber <= 1 ? 1 : tryNumber === 2 ? 0.66 : 0.33);
     const avgScore = Math.round(
       (triesForCorrect.reduce((sum, tryNumber) => sum + tryWeight(tryNumber), 0) / targetCount) * 100,
     );
+    await finishSession({ status: "completed", completedCount: correctCount, score: avgScore });
     summaryHeadingEl.textContent =
       avgScore >= 100
         ? `Geweldig! Alle ${targetCount} sommen in één keer goed! 🎉`
@@ -505,10 +512,8 @@ document.getElementById("math-exercise-back")!.addEventListener("click", async (
   if (!window.confirm("Wil je nu al stoppen? Weet je het zeker?")) return;
   nextAdvance.cancel();
   cancelTryTimer();
-  if (sessionId !== null) {
-    await fetch(`/api/child/math/sessions/${sessionId}/finish`, { method: "POST" });
-    sessionId = null;
-  }
+  await finishSession({ status: "aborted", completedCount: correctCount });
+  sessionId = null;
   showView("view-home");
 });
 

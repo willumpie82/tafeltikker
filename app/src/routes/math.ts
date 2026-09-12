@@ -49,11 +49,14 @@ export default async function mathRoutes(app: FastifyInstance) {
     return { correct, correctAnswer };
   });
 
-  app.post<{ Params: { id: string } }>("/api/child/math/sessions/:id/finish", async (request, reply) => {
+  app.post<{
+    Params: { id: string };
+    Body: { status?: "completed" | "aborted"; targetCount?: number; completedCount?: number; score?: number };
+  }>("/api/child/math/sessions/:id/finish", async (request, reply) => {
     const childId = requireChildId(request);
     if (!childId) return reply.code(401).send({ error: "not_authenticated" });
 
-    const result = await finishPracticeSession(childId, Number(request.params.id));
+    const result = await finishPracticeSession(childId, Number(request.params.id), request.body ?? {});
     if (!result) return reply.code(404).send({ error: "session_not_found" });
     return result;
   });

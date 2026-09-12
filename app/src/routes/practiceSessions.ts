@@ -15,7 +15,16 @@ export async function findOwnedSession(childId: number, sessionId: number) {
   return session ?? null;
 }
 
-export async function finishPracticeSession(childId: number, sessionId: number) {
+export async function finishPracticeSession(
+  childId: number,
+  sessionId: number,
+  outcome?: {
+    status?: "completed" | "aborted";
+    targetCount?: number;
+    completedCount?: number;
+    score?: number;
+  },
+) {
   const session = await findOwnedSession(childId, sessionId);
   if (!session) return null;
 
@@ -24,7 +33,14 @@ export async function finishPracticeSession(childId: number, sessionId: number) 
 
   await db
     .update(practiceSessions)
-    .set({ endedAt: new Date().toISOString(), durationSeconds })
+    .set({
+      endedAt: new Date().toISOString(),
+      durationSeconds,
+      status: outcome?.status,
+      targetCount: outcome?.targetCount,
+      completedCount: outcome?.completedCount,
+      score: outcome?.score,
+    })
     .where(eq(practiceSessions.id, sessionId));
 
   return { durationSeconds };

@@ -43,6 +43,13 @@ export const practiceSessions = sqliteTable(
     startedAt: text("started_at").notNull().default(sql`(current_timestamp)`),
     endedAt: text("ended_at"),
     durationSeconds: integer("duration_seconds"),
+    // Nullable: older sessions (before this was tracked) and any session a
+    // client never called /finish on (tab closed mid-exercise) have none of
+    // these set.
+    status: text("status", { enum: ["completed", "aborted"] }),
+    targetCount: integer("target_count"),
+    completedCount: integer("completed_count"),
+    score: real("score"),
   },
   (table) => [index("practice_sessions_child_idx").on(table.childId, table.startedAt)],
 );

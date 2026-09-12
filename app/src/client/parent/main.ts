@@ -9,6 +9,15 @@ type Stats = {
   trend: { day: string; total: number; correct: number }[];
   perTypingLevel: { level: string; total: number; avgAccuracy: number; avgWpm: number }[];
   perTypingPrompt: { level: string; promptText: string; total: number; avgAccuracy: number; avgWpm: number }[];
+  recentSessions: {
+    id: number;
+    module: "math" | "typing";
+    status: "completed" | "aborted" | null;
+    targetCount: number | null;
+    completedCount: number | null;
+    score: number | null;
+    startedAt: string;
+  }[];
 };
 
 /**
@@ -273,6 +282,31 @@ function renderPromptBar(promptText: string, stat: Stats["perTypingPrompt"][numb
   </div>`;
 }
 
+const MODULE_LABELS: Record<string, string> = { math: "📐 Sommen", typing: "⌨️ Typen" };
+
+function formatSessionDate(startedAt: string): string {
+  return new Date(startedAt + "Z").toLocaleString("nl-NL", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function renderRecentSessions(sessions: Stats["recentSessions"]): string {
+  if (sessions.length === 0) {
+    return `<p class="no-data">Nog geen sessies afgerond.</p>`;
+  }
+  return `<div class="session-list">${sessions
+    .map((session) => {
+      const outcome =
+        session.status === "completed"
+          ? `<span class="session-outcome session-completed">Afgerond${session.score !== null ? `: ${Math.round(session.score)}%` : ""}</span>`
+          : `<span class="session-outcome session-aborted">Afgebroken: ${session.completedCount ?? 0}/${session.targetCount ?? "?"}</span>`;
+      return `<div class="session-row">
+        <span class="session-module">${MODULE_LABELS[session.module] ?? session.module}</span>
+        <span class="session-date">${formatSessionDate(session.startedAt)}</span>
+        ${outcome}
+      </div>`;
+    })
+    .join("")}</div>`;
+}
+
 async function loadChildStats(childId: number): Promise<Stats> {
   const res = await fetch(`/api/parent/children/${childId}/stats`);
   return res.json();
@@ -345,6 +379,8 @@ async function renderChildCard(child: Child): Promise<HTMLElement> {
     ${renderTrend(stats.trend)}
     <h3>Typen</h3>
     ${renderTypingLevels(stats.perTypingLevel, stats.perTypingPrompt)}
+    <h3>Recente sessies</h3>
+    ${renderRecentSessions(stats.recentSessions)}
   `;
 
   // Toggling only shows/hides bars already rendered above — no new DOM

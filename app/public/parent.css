@@ -476,3 +476,38 @@ button#logout-button {
   font-size: 0.75rem;
   color: #aaa;
 }
+
+.session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.session-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.session-module {
+  min-width: 90px;
+}
+
+.session-date {
+  color: #888;
+}
+
+.session-outcome {
+  margin-left: auto;
+  font-weight: bold;
+}
+
+.session-completed {
+  color: var(--success);
+}
+
+.session-aborted {
+  color: #f08c00;
+}

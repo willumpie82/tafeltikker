@@ -299,14 +299,21 @@ async function submitAttempt(typed: string) {
   nextAdvance.start();
 }
 
+async function finishSession(outcome: { status: "completed" | "aborted"; completedCount: number; score?: number }) {
+  if (sessionId === null) return;
+  await fetch(`/api/child/typing/sessions/${sessionId}/finish`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ targetCount: queue.length, ...outcome }),
+  });
+}
+
 async function advanceToNext() {
   currentIndex++;
   if (currentIndex >= queue.length) {
-    if (sessionId !== null) {
-      await fetch(`/api/child/typing/sessions/${sessionId}/finish`, { method: "POST" });
-    }
     const avgAccuracy = Math.round(results.reduce((sum, r) => sum + r.accuracy, 0) / results.length);
     const avgWpm = Math.round((results.reduce((sum, r) => sum + r.wpm, 0) / results.length) * 10) / 10;
+    await finishSession({ status: "completed", completedCount: results.length, score: avgAccuracy });
     summaryHeadingEl.textContent = `Gemiddeld ${avgAccuracy}% goed, ${avgWpm} woorden per minuut! 🎉`;
     showView("view-typing-summary");
     return;
@@ -322,10 +329,8 @@ document.getElementById("typing-exercise-back")!.addEventListener("click", async
   if (!window.confirm("Wil je nu al stoppen? Weet je het zeker?")) return;
   nextAdvance.cancel();
   cancelIdleTimer();
-  if (sessionId !== null) {
-    await fetch(`/api/child/typing/sessions/${sessionId}/finish`, { method: "POST" });
-    sessionId = null;
-  }
+  await finishSession({ status: "aborted", completedCount: results.length });
+  sessionId = null;
   showView("view-home");
 });
 
