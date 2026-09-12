@@ -37,7 +37,9 @@
         <div id="table-picker" class="table-picker"></div>
 
         <h2>Hoeveel sommen?</h2>
+        <div id="count-mode-picker" class="count-mode-picker"></div>
         <div id="count-picker" class="count-picker"></div>
+        <div id="duration-picker" class="count-picker" hidden></div>
 
         <h2>Hoe moeilijk?</h2>
         <div id="difficulty-picker" class="difficulty-picker"></div>
@@ -73,6 +75,13 @@
             <div id="hint-panel" class="hint-panel"></div>
             <p id="math-feedback" class="math-feedback" hidden></p>
             <div id="table-progress" class="table-progress"></div>
+          </div>
+        </div>
+
+        <div id="math-idle-overlay" class="idle-overlay" hidden>
+          <div class="idle-overlay-box">
+            <p>Ben je er nog?</p>
+            <button type="button" id="math-idle-resume-button" class="big-button">Ja, verder!</button>
           </div>
         </div>
       </section>

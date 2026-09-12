@@ -3,8 +3,10 @@ import { setupAutoAdvance } from "./next-button.js";
 
 type Question = { tableNumber: number; operandA: number; operandB: number };
 type Difficulty = "easy" | "medium" | "hard";
+type SessionMode = "count" | "time";
 
 const COUNT_OPTIONS = [5, 10, 20];
+const DURATION_OPTIONS_MINUTES = [2, 5, 10];
 const DIFFICULTIES: { id: Difficulty; label: string; icon: string; description: string }[] = [
   { id: "easy", label: "Makkelijk", icon: "🎲", description: "Meerkeuze antwoorden" },
   { id: "medium", label: "Gemiddeld", icon: "❓", description: "3 pogingen, hint bij de laatste" },
@@ -13,15 +15,22 @@ const DIFFICULTIES: { id: Difficulty; label: string; icon: string; description: 
 const MAX_TRIES = 3; // used by both "medium" and "hard"
 const AUTO_ADVANCE_MS = 1000;
 const HARD_TRY_SECONDS = 8; // "hard" only: run out of time on a try and it's marked wrong
+const IDLE_PAUSE_MS = 60000; // no input for this long -> pause and ask "Ben je er nog?"
 
 const selectedTables = new Set<number>();
 let selectedCount = 10;
+let selectedMode: SessionMode = "count";
+let selectedDurationMinutes = 5;
 let selectedDifficulty: Difficulty = "medium";
 
 const tablePickerEl = document.getElementById("table-picker")!;
+const countModePickerEl = document.getElementById("count-mode-picker")!;
 const countPickerEl = document.getElementById("count-picker")!;
+const durationPickerEl = document.getElementById("duration-picker")!;
 const difficultyPickerEl = document.getElementById("difficulty-picker")!;
 const startButtonEl = document.getElementById("math-start-button") as HTMLButtonElement;
+const idleOverlayEl = document.getElementById("math-idle-overlay")!;
+const idleResumeButtonEl = document.getElementById("math-idle-resume-button") as HTMLButtonElement;
 
 const progressEl = document.getElementById("math-progress")!;
 const questionEl = document.getElementById("math-question")!;
@@ -52,6 +61,10 @@ let triesForCorrect: number[] = [];
 let tryTimerInterval: number | undefined;
 let tryTimeRemaining = 0;
 let correctCombos = new Set<string>();
+let durationInterval: number | undefined;
+let durationRemainingSeconds = 0;
+let idleTimeoutId: number | undefined;
+let isPaused = false;
 
 function comboKey(table: number, multiplier: number): string {
   return `${table}x${multiplier}`;
@@ -110,6 +123,81 @@ function cancelTryTimer() {
   tryTimerEl.hidden = true;
 }
 
+function updateDurationDisplay() {
+  const minutes = Math.floor(durationRemainingSeconds / 60);
+  const seconds = durationRemainingSeconds % 60;
+  progressEl.textContent = `Tijd over: ${minutes}:${String(seconds).padStart(2, "0")}`;
+  progressBarFillEl.style.width = `${(durationRemainingSeconds / (selectedDurationMinutes * 60)) * 100}%`;
+}
+
+function runDurationInterval() {
+  cancelDurationTimer();
+  updateDurationDisplay();
+  durationInterval = window.setInterval(() => {
+    durationRemainingSeconds--;
+    if (durationRemainingSeconds <= 0) {
+      cancelDurationTimer();
+      finishByTime();
+      return;
+    }
+    updateDurationDisplay();
+  }, 1000);
+}
+
+function startDurationTimer() {
+  durationRemainingSeconds = selectedDurationMinutes * 60;
+  runDurationInterval();
+}
+
+function cancelDurationTimer() {
+  if (durationInterval !== undefined) {
+    window.clearInterval(durationInterval);
+    durationInterval = undefined;
+  }
+}
+
+function resetIdleTimer() {
+  if (idleTimeoutId !== undefined) window.clearTimeout(idleTimeoutId);
+  idleTimeoutId = undefined;
+  if (isPaused) return;
+  idleTimeoutId = window.setTimeout(showIdlePause, IDLE_PAUSE_MS);
+}
+
+function cancelIdleTimer() {
+  if (idleTimeoutId !== undefined) {
+    window.clearTimeout(idleTimeoutId);
+    idleTimeoutId = undefined;
+  }
+}
+
+// A minute with zero input pauses the exercise instead of silently burning
+// through a time-mode countdown (or an unanswered "hard" try timer) while a
+// child has wandered off.
+function showIdlePause() {
+  isPaused = true;
+  cancelTryTimer();
+  cancelDurationTimer();
+  nextAdvance.cancel();
+  idleOverlayEl.hidden = false;
+}
+
+function resumeFromIdlePause() {
+  isPaused = false;
+  idleOverlayEl.hidden = true;
+  if (selectedMode === "time") runDurationInterval();
+  if (!answered) {
+    startTryTimerIfNeeded();
+  } else if (nextHintEl.hidden) {
+    // Visible hint text means this was deliberately left waiting for a
+    // manual click (a wrong final answer with its hint shown) — resuming
+    // shouldn't silently start auto-advancing past it.
+    nextAdvance.start();
+  }
+  resetIdleTimer();
+}
+
+idleResumeButtonEl.addEventListener("click", resumeFromIdlePause);
+
 function buildTablePicker() {
   tablePickerEl.innerHTML = "";
   for (let table = 1; table <= 10; table++) {
@@ -131,6 +219,31 @@ function buildTablePicker() {
   }
 }
 
+function buildCountModePicker() {
+  countModePickerEl.innerHTML = "";
+  const modes: { id: SessionMode; label: string }[] = [
+    { id: "count", label: "Aantal" },
+    { id: "time", label: "Tijd" },
+  ];
+  for (const mode of modes) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = mode.label;
+    button.className = "mode-button";
+    button.classList.toggle("selected", mode.id === selectedMode);
+    button.addEventListener("click", () => {
+      selectedMode = mode.id;
+      countModePickerEl.querySelectorAll(".mode-button").forEach((el) => el.classList.remove("selected"));
+      button.classList.add("selected");
+      countPickerEl.hidden = selectedMode !== "count";
+      durationPickerEl.hidden = selectedMode !== "time";
+    });
+    countModePickerEl.appendChild(button);
+  }
+  countPickerEl.hidden = selectedMode !== "count";
+  durationPickerEl.hidden = selectedMode !== "time";
+}
+
 function buildCountPicker() {
   countPickerEl.innerHTML = "";
   for (const count of COUNT_OPTIONS) {
@@ -145,6 +258,23 @@ function buildCountPicker() {
       button.classList.add("selected");
     });
     countPickerEl.appendChild(button);
+  }
+}
+
+function buildDurationPicker() {
+  durationPickerEl.innerHTML = "";
+  for (const minutes of DURATION_OPTIONS_MINUTES) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = `${minutes} min`;
+    button.className = "count-button";
+    button.classList.toggle("selected", minutes === selectedDurationMinutes);
+    button.addEventListener("click", () => {
+      selectedDurationMinutes = minutes;
+      durationPickerEl.querySelectorAll(".count-button").forEach((el) => el.classList.remove("selected"));
+      button.classList.add("selected");
+    });
+    durationPickerEl.appendChild(button);
   }
 }
 
@@ -173,7 +303,9 @@ function buildDifficultyPicker() {
 
 export function startMathSettings() {
   buildTablePicker();
+  buildCountModePicker();
   buildCountPicker();
+  buildDurationPicker();
   buildDifficultyPicker();
   startButtonEl.disabled = selectedTables.size === 0;
   showView("view-math-settings");
@@ -188,22 +320,38 @@ function shuffled<T>(items: T[]): T[] {
   return result;
 }
 
-function buildQueue(): Question[] {
+function buildBaseQuestions(): Question[] {
   const baseQuestions: Question[] = [];
   for (const tableNumber of selectedTables) {
     for (let multiplier = 1; multiplier <= 10; multiplier++) {
       baseQuestions.push({ tableNumber, operandA: tableNumber, operandB: multiplier });
     }
   }
+  return baseQuestions;
+}
+
+function buildQueue(): Question[] {
+  const baseQuestions = buildBaseQuestions();
 
   // Shuffle in fresh "laps" through every fact rather than sampling with
   // replacement, so the same table x multiplier can't turn up twice in a
-  // row just by chance within the chosen count.
+  // row just by chance within the chosen count. Time-mode doesn't know its
+  // final length upfront, so it starts with one lap and grows on demand
+  // (see ensureQueueHasNext) instead of a fixed slice.
+  if (selectedMode === "time") return shuffled(baseQuestions);
+
   const questions: Question[] = [];
   while (questions.length < selectedCount) {
     questions.push(...shuffled(baseQuestions));
   }
   return questions.slice(0, selectedCount);
+}
+
+/** Time-mode queues aren't pre-sized — top up with another shuffled lap before it runs dry. */
+function ensureQueueHasNext() {
+  if (currentIndex >= queue.length) {
+    queue.push(...shuffled(buildBaseQuestions()));
+  }
 }
 
 /** Breaks a table x multiplier question into steps via the nearest round anchor (5 or 10). */
@@ -238,20 +386,27 @@ async function startSession() {
 
   queue = buildQueue();
   currentIndex = 0;
-  targetCount = selectedCount;
+  targetCount = selectedMode === "time" ? Infinity : selectedCount;
   correctCount = 0;
   triesForCorrect = [];
   correctCombos = new Set();
+  isPaused = false;
   renderTableProgress();
 
   showView("view-math-exercise");
+  if (selectedMode === "time") startDurationTimer();
   showQuestion();
 }
 
 function showQuestion() {
+  ensureQueueHasNext();
   const question = queue[currentIndex];
-  progressEl.textContent = `Goed: ${correctCount} van de ${targetCount}`;
-  progressBarFillEl.style.width = `${(correctCount / targetCount) * 100}%`;
+  if (selectedMode === "count") {
+    progressEl.textContent = `Goed: ${correctCount} van de ${targetCount}`;
+    progressBarFillEl.style.width = `${(correctCount / targetCount) * 100}%`;
+  } else {
+    updateDurationDisplay();
+  }
   questionEl.textContent = `${question.operandA} × ${question.operandB} = ?`;
 
   currentAnswer = "";
@@ -280,6 +435,7 @@ function showQuestion() {
   }
 
   startTryTimerIfNeeded();
+  resetIdleTimer();
 }
 
 function buildOptions(question: Question) {
@@ -306,6 +462,7 @@ function buildOptions(question: Question) {
 
 async function selectOption(value: number) {
   if (answered) return;
+  resetIdleTimer();
   answered = true;
   optionsEl.querySelectorAll("button").forEach((b) => ((b as HTMLButtonElement).disabled = true));
   await finalizeAttempt(value, false);
@@ -417,6 +574,7 @@ async function submitAnswer() {
   if (answered || currentAnswer.length === 0 || sessionId === null) return;
   // "easy" answers via buildOptions()/selectOption(), never the numpad.
   if (selectedDifficulty === "easy") return;
+  resetIdleTimer();
 
   await resolveTry(Number(currentAnswer));
 }
@@ -436,6 +594,7 @@ function buildMathPad() {
       button.textContent = "⌫";
       button.addEventListener("click", () => {
         if (answered) return;
+        resetIdleTimer();
         currentAnswer = currentAnswer.slice(0, -1);
         renderAnswer();
       });
@@ -443,6 +602,7 @@ function buildMathPad() {
       button.textContent = key;
       button.addEventListener("click", () => {
         if (answered || currentAnswer.length >= 3) return;
+        resetIdleTimer();
         currentAnswer += key;
         renderAnswer();
       });
@@ -468,13 +628,27 @@ async function finishSession(outcome: { status: "completed" | "aborted"; complet
   });
 }
 
+function computeAvgScore(): number {
+  if (triesForCorrect.length === 0) return 0;
+  const tryWeight = (tryNumber: number) => (tryNumber <= 1 ? 1 : tryNumber === 2 ? 0.66 : 0.33);
+  return Math.round((triesForCorrect.reduce((sum, tryNumber) => sum + tryWeight(tryNumber), 0) / triesForCorrect.length) * 100);
+}
+
+async function finishByTime() {
+  cancelTryTimer();
+  cancelIdleTimer();
+  nextAdvance.cancel();
+  answered = true;
+  const avgScore = computeAvgScore();
+  await finishSession({ status: "completed", completedCount: correctCount, score: avgScore });
+  summaryHeadingEl.textContent = `Tijd is om! Je hebt ${correctCount} ${correctCount === 1 ? "som" : "sommen"} goed gemaakt. Gemiddelde score: ${avgScore}% 🎉`;
+  showView("view-math-summary");
+}
+
 async function advanceToNext() {
   currentIndex++;
   if (correctCount >= targetCount) {
-    const tryWeight = (tryNumber: number) => (tryNumber <= 1 ? 1 : tryNumber === 2 ? 0.66 : 0.33);
-    const avgScore = Math.round(
-      (triesForCorrect.reduce((sum, tryNumber) => sum + tryWeight(tryNumber), 0) / targetCount) * 100,
-    );
+    const avgScore = computeAvgScore();
     await finishSession({ status: "completed", completedCount: correctCount, score: avgScore });
     summaryHeadingEl.textContent =
       avgScore >= 100
@@ -489,14 +663,16 @@ async function advanceToNext() {
 const exerciseViewEl = document.getElementById("view-math-exercise") as HTMLElement;
 
 document.addEventListener("keydown", (event) => {
-  if (exerciseViewEl.hidden || selectedDifficulty === "easy" || answered) return;
+  if (exerciseViewEl.hidden || selectedDifficulty === "easy" || answered || isPaused) return;
 
   if (event.key >= "0" && event.key <= "9") {
     if (currentAnswer.length >= 3) return;
+    resetIdleTimer();
     currentAnswer += event.key;
     renderAnswer();
   } else if (event.key === "Backspace") {
     event.preventDefault();
+    resetIdleTimer();
     currentAnswer = currentAnswer.slice(0, -1);
     renderAnswer();
   } else if (event.key === "Enter") {
@@ -512,6 +688,10 @@ document.getElementById("math-exercise-back")!.addEventListener("click", async (
   if (!window.confirm("Wil je nu al stoppen? Weet je het zeker?")) return;
   nextAdvance.cancel();
   cancelTryTimer();
+  cancelDurationTimer();
+  cancelIdleTimer();
+  idleOverlayEl.hidden = true;
+  isPaused = false;
   await finishSession({ status: "aborted", completedCount: correctCount });
   sessionId = null;
   showView("view-home");

@@ -112,6 +112,10 @@ h1 {
   margin: 0 auto;
 }
 
+.pin-pad[hidden] {
+  display: none;
+}
+
 .pin-pad button {
   font-size: 1.8rem;
   padding: 20px 0;
@@ -174,6 +178,10 @@ h1 {
   box-shadow: 0 2px 0 var(--accent-dark);
 }
 
+.big-button[hidden] {
+  display: none;
+}
+
 .big-button:disabled {
   background: #bbb;
   box-shadow: 0 4px 0 #999;
@@ -187,6 +195,11 @@ h1 {
   gap: 10px;
   max-width: 400px;
   margin: 0 auto 24px;
+}
+
+.table-picker[hidden],
+.count-picker[hidden] {
+  display: none;
 }
 
 .table-button,
@@ -212,6 +225,10 @@ h1 {
   gap: 10px;
   max-width: 420px;
   margin: 0 auto 24px;
+}
+
+.difficulty-picker[hidden] {
+  display: none;
 }
 
 .difficulty-button {
@@ -426,6 +443,10 @@ h1 {
   margin: 0 auto 20px;
 }
 
+.math-options[hidden] {
+  display: none;
+}
+
 .option-button {
   font-size: 1.8rem;
   padding: 24px 0;
@@ -562,4 +583,54 @@ h1 {
   color: rgba(0, 0, 0, 0.4);
   font-size: 1.1rem;
   cursor: pointer;
+}
+
+.count-mode-picker {
+  display: flex;
+  gap: 10px;
+  max-width: 300px;
+  margin: 0 auto 12px;
+}
+
+.mode-button {
+  flex: 1;
+  padding: 10px 0;
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  background: white;
+  color: var(--accent);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.mode-button.selected {
+  background: var(--accent);
+  color: white;
+}
+
+.idle-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 50;
+}
+
+.idle-overlay[hidden] {
+  display: none;
+}
+
+.idle-overlay-box {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  text-align: center;
+  max-width: 320px;
+}
+
+.idle-overlay-box p {
+  font-size: 1.3rem;
+  margin-bottom: 20px;
 }
