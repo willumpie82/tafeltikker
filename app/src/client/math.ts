@@ -5,10 +5,10 @@ type Question = { tableNumber: number; operandA: number; operandB: number };
 type Difficulty = "easy" | "medium" | "hard";
 
 const COUNT_OPTIONS = [5, 10, 20];
-const DIFFICULTIES: { id: Difficulty; label: string }[] = [
-  { id: "easy", label: "Makkelijk" },
-  { id: "medium", label: "Gemiddeld" },
-  { id: "hard", label: "Moeilijk" },
+const DIFFICULTIES: { id: Difficulty; label: string; icon: string; description: string }[] = [
+  { id: "easy", label: "Makkelijk", icon: "🎲", description: "Meerkeuze antwoorden" },
+  { id: "medium", label: "Gemiddeld", icon: "❓", description: "3 pogingen, hint bij de laatste" },
+  { id: "hard", label: "Moeilijk", icon: "⏱️", description: "Max 8 seconden per som" },
 ];
 const MAX_TRIES = 3; // used by both "medium" and "hard"
 const AUTO_ADVANCE_MS = 1000;
@@ -150,16 +150,21 @@ function buildCountPicker() {
 
 function buildDifficultyPicker() {
   difficultyPickerEl.innerHTML = "";
-  difficultyPickerEl.style.gridTemplateColumns = "repeat(3, 1fr)";
   for (const difficulty of DIFFICULTIES) {
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = difficulty.label;
-    button.className = "table-button";
+    button.className = "difficulty-button";
     button.classList.toggle("selected", difficulty.id === selectedDifficulty);
+    button.innerHTML = `
+      <span class="difficulty-icon">${difficulty.icon}</span>
+      <span class="difficulty-text">
+        <span class="difficulty-label">${difficulty.label}</span>
+        <span class="difficulty-desc">${difficulty.description}</span>
+      </span>
+    `;
     button.addEventListener("click", () => {
       selectedDifficulty = difficulty.id;
-      difficultyPickerEl.querySelectorAll(".table-button").forEach((el) => el.classList.remove("selected"));
+      difficultyPickerEl.querySelectorAll(".difficulty-button").forEach((el) => el.classList.remove("selected"));
       button.classList.add("selected");
     });
     difficultyPickerEl.appendChild(button);
