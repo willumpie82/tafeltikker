@@ -147,6 +147,10 @@ button#logout-button {
   max-width: 320px;
 }
 
+.child-form[hidden] {
+  display: none;
+}
+
 .form-actions {
   display: flex;
   gap: 8px;
@@ -313,6 +317,11 @@ button#logout-button {
   height: auto;
   row-gap: 20px;
   padding-bottom: 4px;
+  margin-bottom: 16px;
+}
+
+.prompt-bar-row:last-child {
+  margin-bottom: 0;
 }
 
 .prompt-bar-row .fact-bar {

@@ -14,6 +14,11 @@ const HOME_ROW = "asdfghjkl".split("");
 const TOP_ROW = "qwertyuiop".split("");
 const BOTTOM_ROW = "zxcvbnm".split("");
 
+// Physical QWERTY row order (top to bottom) — shared by the on-screen
+// keyboard and the parent dashboard's per-letter breakdown, so a parent can
+// see which area of the keyboard is problematic instead of an a-z list.
+export const QWERTY_ROWS: string[][] = [TOP_ROW, HOME_ROW, BOTTOM_ROW];
+
 const WORDS = [
   "kat", "hond", "bal", "boom", "huis", "fiets", "zon", "maan", "vis", "pen",
   "tas", "muur", "deur", "stoel", "tafel", "boek", "appel", "peer", "banaan", "school",

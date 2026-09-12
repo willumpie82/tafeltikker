@@ -1,16 +1,10 @@
 import { showView } from "./views.js";
-import { TYPING_LEVELS, promptsFor, type TypingLevel } from "./typing-content.js";
+import { TYPING_LEVELS, promptsFor, QWERTY_ROWS, type TypingLevel } from "./typing-content.js";
 import { setupAutoAdvance } from "./next-button.js";
 
 const COUNT_OPTIONS = [5, 10, 20];
 const AUTO_ADVANCE_MS = 1000;
 const IDLE_HINT_MS = 3000;
-
-const KEYBOARD_ROWS = [
-  ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
-  ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
-  ["z", "x", "c", "v", "b", "n", "m"],
-];
 
 const levelPickerEl = document.getElementById("level-picker")!;
 const countPickerEl = document.getElementById("typing-count-picker")!;
@@ -49,7 +43,7 @@ function buildKeyboard() {
   keyboardEl.innerHTML = "";
   keyButtons.clear();
 
-  for (const row of KEYBOARD_ROWS) {
+  for (const row of QWERTY_ROWS) {
     const rowEl = document.createElement("div");
     rowEl.className = "keyboard-row";
     for (const key of row) {
@@ -325,6 +319,7 @@ document.getElementById("typing-settings-back")!.addEventListener("click", () =>
 });
 
 document.getElementById("typing-exercise-back")!.addEventListener("click", async () => {
+  if (!window.confirm("Wil je nu al stoppen? Weet je het zeker?")) return;
   nextAdvance.cancel();
   cancelIdleTimer();
   if (sessionId !== null) {

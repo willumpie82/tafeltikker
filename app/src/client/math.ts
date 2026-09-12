@@ -502,6 +502,7 @@ document.getElementById("math-settings-back")!.addEventListener("click", () => {
 });
 
 document.getElementById("math-exercise-back")!.addEventListener("click", async () => {
+  if (!window.confirm("Wil je nu al stoppen? Weet je het zeker?")) return;
   nextAdvance.cancel();
   cancelTryTimer();
   if (sessionId !== null) {

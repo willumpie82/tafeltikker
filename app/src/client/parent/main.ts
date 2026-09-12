@@ -1,5 +1,5 @@
 import { emojiFor, buildAvatarPicker } from "../avatars.js";
-import { PROMPT_POOLS, type TypingLevel } from "../typing-content.js";
+import { PROMPT_POOLS, QWERTY_ROWS, type TypingLevel } from "../typing-content.js";
 
 type Child = { id: number; name: string; avatarId: string };
 type Stats = {
@@ -233,25 +233,16 @@ function renderTypingLevels(perTypingLevel: Stats["perTypingLevel"], perTypingPr
     .map((row) => {
       const label = TYPING_LEVEL_LABELS[row.level] ?? row.level;
       const statsByPrompt = new Map((promptsByLevel.get(row.level) ?? []).map((p) => [p.promptText, p]));
-      const pool = PROMPT_POOLS[row.level as TypingLevel] ?? [];
 
-      const promptBars = pool
-        .map((promptText) => {
-          const stat = statsByPrompt.get(promptText);
-          const shortLabel = promptText.length > 3 ? promptText.slice(0, 3) : promptText;
-          if (!stat) {
-            return `<div class="fact-bar fact-bar-empty" title="${promptText}: nog niet geoefend">
-              <span class="fact-bar-label">${shortLabel}</span>
-            </div>`;
-          }
-          const confidence = typingConfidence(stat.avgAccuracy, stat.avgWpm);
-          const tier = confidence >= 80 ? "high" : confidence >= 50 ? "medium" : "low";
-          return `<div class="fact-bar" title="${promptText}: ${stat.avgAccuracy}% nauwkeurig, ${stat.avgWpm} wpm (${stat.total}x)">
-            <div class="fact-bar-fill ${tier}" style="height:${confidence}%"></div>
-            <span class="fact-bar-label">${shortLabel}</span>
-          </div>`;
-        })
-        .join("");
+      // Letters lay out as physical QWERTY rows instead of an a-z list, so a
+      // parent can see which area of the keyboard is problematic rather than
+      // just which individual letters.
+      const detailHtml =
+        row.level === "letters"
+          ? QWERTY_ROWS.map((keys) => `<div class="fact-bar-row prompt-bar-row">${keys.map((k) => renderPromptBar(k, statsByPrompt.get(k))).join("")}</div>`).join("")
+          : `<div class="fact-bar-row prompt-bar-row">${(PROMPT_POOLS[row.level as TypingLevel] ?? [])
+              .map((promptText) => renderPromptBar(promptText, statsByPrompt.get(promptText)))
+              .join("")}</div>`;
 
       return `<div class="table-accuracy-row">
         <div class="table-accuracy-summary">
@@ -260,11 +251,26 @@ function renderTypingLevels(perTypingLevel: Stats["perTypingLevel"], perTypingPr
         </div>
         <div class="accuracy-bar"><div class="accuracy-bar-fill" style="width:${row.avgAccuracy}%"></div></div>
         <div class="table-facts-detail" data-table-detail="level-${row.level}" hidden>
-          <div class="fact-bar-row prompt-bar-row">${promptBars}</div>
+          ${detailHtml}
         </div>
       </div>`;
     })
     .join("")}</div>`;
+}
+
+function renderPromptBar(promptText: string, stat: Stats["perTypingPrompt"][number] | undefined): string {
+  const shortLabel = promptText.length > 3 ? promptText.slice(0, 3) : promptText;
+  if (!stat) {
+    return `<div class="fact-bar fact-bar-empty" title="${promptText}: nog niet geoefend">
+      <span class="fact-bar-label">${shortLabel}</span>
+    </div>`;
+  }
+  const confidence = typingConfidence(stat.avgAccuracy, stat.avgWpm);
+  const tier = confidence >= 80 ? "high" : confidence >= 50 ? "medium" : "low";
+  return `<div class="fact-bar" title="${promptText}: ${stat.avgAccuracy}% nauwkeurig, ${stat.avgWpm} wpm (${stat.total}x)">
+    <div class="fact-bar-fill ${tier}" style="height:${confidence}%"></div>
+    <span class="fact-bar-label">${shortLabel}</span>
+  </div>`;
 }
 
 async function loadChildStats(childId: number): Promise<Stats> {
