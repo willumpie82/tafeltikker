@@ -1,5 +1,5 @@
 import { emojiFor, buildAvatarPicker } from "../avatars.js";
-import { PROMPT_POOLS, QWERTY_ROWS, type TypingLevel } from "../typing-content.js";
+import { QWERTY_ROWS } from "../typing-content.js";
 import { STICKERS, stickerFor } from "../stickers.js";
 
 type Child = { id: number; name: string; avatarId: string };
@@ -9,7 +9,7 @@ type Stats = {
   perFact: { tableNumber: number; operandB: number; total: number; correct: number; avgElapsedMs: number | null }[];
   trend: { day: string; total: number; correct: number }[];
   perTypingLevel: { level: string; total: number; avgAccuracy: number; avgWpm: number }[];
-  perTypingPrompt: { level: string; promptText: string; total: number; avgAccuracy: number; avgWpm: number }[];
+  perTypingLetter: { level: string; letter: string; total: number; avgAccuracy: number; avgWpm: number }[];
   recentSessions: {
     id: number;
     module: "math" | "typing";
@@ -241,32 +241,32 @@ function renderTrend(trend: Stats["trend"]): string {
     .join("")}</div>`;
 }
 
-function renderTypingLevels(perTypingLevel: Stats["perTypingLevel"], perTypingPrompt: Stats["perTypingPrompt"]): string {
+function renderTypingLevels(perTypingLevel: Stats["perTypingLevel"], perTypingLetter: Stats["perTypingLetter"]): string {
   if (perTypingLevel.length === 0) {
     return `<p class="no-data">Nog geen typen geoefend.</p>`;
   }
 
-  const promptsByLevel = new Map<string, Stats["perTypingPrompt"]>();
-  for (const row of perTypingPrompt) {
-    const list = promptsByLevel.get(row.level) ?? [];
+  const lettersByLevel = new Map<string, Stats["perTypingLetter"]>();
+  for (const row of perTypingLetter) {
+    const list = lettersByLevel.get(row.level) ?? [];
     list.push(row);
-    promptsByLevel.set(row.level, list);
+    lettersByLevel.set(row.level, list);
   }
 
   return `<div class="table-accuracy-list">${perTypingLevel
     .map((row) => {
       const label = TYPING_LEVEL_LABELS[row.level] ?? row.level;
-      const statsByPrompt = new Map((promptsByLevel.get(row.level) ?? []).map((p) => [p.promptText, p]));
+      const statsByLetter = new Map((lettersByLevel.get(row.level) ?? []).map((l) => [l.letter, l]));
 
-      // Letters lay out as physical QWERTY rows instead of an a-z list, so a
-      // parent can see which area of the keyboard is problematic rather than
-      // just which individual letters.
-      const detailHtml =
-        row.level === "letters"
-          ? QWERTY_ROWS.map((keys) => `<div class="fact-bar-row prompt-bar-row">${keys.map((k) => renderPromptBar(k, statsByPrompt.get(k))).join("")}</div>`).join("")
-          : `<div class="fact-bar-row prompt-bar-row">${(PROMPT_POOLS[row.level as TypingLevel] ?? [])
-              .map((promptText) => renderPromptBar(promptText, statsByPrompt.get(promptText)))
-              .join("")}</div>`;
+      // Every level lays out as physical QWERTY rows rather than a list of
+      // the actual prompts — a specific word/sentence only ever gets
+      // attempted a handful of times and the pool can grow arbitrarily, so
+      // a per-prompt bar carries too little signal to mean anything; every
+      // letter it's made of gets more data and shows which area of the
+      // keyboard is actually problematic instead.
+      const detailHtml = QWERTY_ROWS.map(
+        (keys) => `<div class="fact-bar-row prompt-bar-row">${keys.map((k) => renderLetterBar(k, statsByLetter.get(k))).join("")}</div>`,
+      ).join("");
 
       return `<div class="table-accuracy-row">
         <div class="table-accuracy-summary">
@@ -282,18 +282,17 @@ function renderTypingLevels(perTypingLevel: Stats["perTypingLevel"], perTypingPr
     .join("")}</div>`;
 }
 
-function renderPromptBar(promptText: string, stat: Stats["perTypingPrompt"][number] | undefined): string {
-  const shortLabel = promptText.length > 3 ? promptText.slice(0, 3) : promptText;
+function renderLetterBar(letter: string, stat: Stats["perTypingLetter"][number] | undefined): string {
   if (!stat) {
-    return `<div class="fact-bar fact-bar-empty" title="${promptText}: nog niet geoefend">
-      <span class="fact-bar-label">${shortLabel}</span>
+    return `<div class="fact-bar fact-bar-empty" title="${letter}: nog niet geoefend">
+      <span class="fact-bar-label">${letter}</span>
     </div>`;
   }
   const confidence = typingConfidence(stat.avgAccuracy, stat.avgWpm);
   const tier = confidence >= 80 ? "high" : confidence >= 50 ? "medium" : "low";
-  return `<div class="fact-bar" title="${promptText}: ${stat.avgAccuracy}% nauwkeurig, ${stat.avgWpm} wpm (${stat.total}x)">
+  return `<div class="fact-bar" title="${letter}: ${stat.avgAccuracy}% nauwkeurig, ${stat.avgWpm} wpm (${stat.total}x)">
     <div class="fact-bar-fill ${tier}" style="height:${confidence}%"></div>
-    <span class="fact-bar-label">${shortLabel}</span>
+    <span class="fact-bar-label">${letter}</span>
   </div>`;
 }
 
@@ -469,7 +468,7 @@ async function renderChildCard(child: Child): Promise<HTMLElement> {
     ${renderTableAccuracy(stats.perTable, stats.perFact)}
     ${renderTrend(stats.trend)}
     <h3>Typen</h3>
-    ${renderTypingLevels(stats.perTypingLevel, stats.perTypingPrompt)}
+    ${renderTypingLevels(stats.perTypingLevel, stats.perTypingLetter)}
     <h3>Recente sessies</h3>
     ${renderRecentSessions(stats.recentSessions)}
     <h3>Uitdagingen</h3>

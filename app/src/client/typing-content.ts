@@ -43,11 +43,6 @@ const PROMPTS: Record<TypingLevel, string[]> = {
   sentences: SENTENCES,
 };
 
-// Full pool per level (letters ignores the warm-up subset) — used by the
-// parent dashboard to show every possible prompt, including ones not yet
-// attempted, rather than only the ones that happen to appear in the stats.
-export const PROMPT_POOLS: Record<TypingLevel, string[]> = PROMPTS;
-
 export function promptsFor(level: TypingLevel, count: number): string[] {
   if (level === "letters") {
     return lettersWithWarmup(count);

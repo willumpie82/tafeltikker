@@ -169,20 +169,45 @@ export default async function parentRoutes(app: FastifyInstance) {
       .where(eq(typingAttempts.childId, childId))
       .groupBy(typingAttempts.level);
 
-    // Per individual prompt (one letter/word/sentence) — same idea as
-    // perFact for math, so the dashboard can show which specific prompts
-    // are still shaky within a level, not just the level as a whole.
-    const perTypingPrompt = await db
+    // Per individual QWERTY letter, aggregated from every attempt at that
+    // level containing it — grouping by the literal prompt text (like
+    // perFact does for math facts) falls apart for Woorden/Zinnetjes:
+    // a specific word only ever gets attempted a handful of times, and the
+    // pool can grow arbitrarily, so a per-word bar carries too little
+    // signal to mean anything. Attributing each attempt's accuracy/wpm to
+    // every letter it contains gives every level the same physical-
+    // keyboard view — for "Letters" this is unchanged from before, since
+    // its prompt already is a single letter.
+    const rawTypingAttempts = await db
       .select({
         level: typingAttempts.level,
         promptText: typingAttempts.promptText,
-        total: sql<number>`count(*)`,
-        avgAccuracy: sql<number>`round(avg(${typingAttempts.accuracy}), 1)`,
-        avgWpm: sql<number>`round(avg(${typingAttempts.wpm}), 1)`,
+        accuracy: typingAttempts.accuracy,
+        wpm: typingAttempts.wpm,
       })
       .from(typingAttempts)
-      .where(eq(typingAttempts.childId, childId))
-      .groupBy(typingAttempts.level, typingAttempts.promptText);
+      .where(eq(typingAttempts.childId, childId));
+
+    const letterTotals = new Map<string, { level: string; letter: string; total: number; accuracySum: number; wpmSum: number }>();
+    for (const attempt of rawTypingAttempts) {
+      const letters = new Set(attempt.promptText.toLowerCase().replace(/[^a-z]/g, ""));
+      for (const letter of letters) {
+        const key = `${attempt.level}:${letter}`;
+        const entry = letterTotals.get(key) ?? { level: attempt.level, letter, total: 0, accuracySum: 0, wpmSum: 0 };
+        entry.total++;
+        entry.accuracySum += attempt.accuracy;
+        entry.wpmSum += attempt.wpm;
+        letterTotals.set(key, entry);
+      }
+    }
+
+    const perTypingLetter = [...letterTotals.values()].map((entry) => ({
+      level: entry.level,
+      letter: entry.letter,
+      total: entry.total,
+      avgAccuracy: Math.round((entry.accuracySum / entry.total) * 10) / 10,
+      avgWpm: Math.round((entry.wpmSum / entry.total) * 10) / 10,
+    }));
 
     // Last runs (either module), newest first — sessions never explicitly
     // finished (browser closed mid-exercise) have no status and are left
@@ -208,7 +233,7 @@ export default async function parentRoutes(app: FastifyInstance) {
       perFact,
       trend,
       perTypingLevel,
-      perTypingPrompt,
+      perTypingLetter,
       recentSessions,
     };
   });
