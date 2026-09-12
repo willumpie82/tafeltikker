@@ -1,9 +1,16 @@
 # Challenge module (v1: private, per-child)
 
-Design converged on in chat before any code was written — capturing it here
-so the decisions survive independent of chat history. Source request:
-`doc/processed.md` will get the resolution note once this is built; this
-file is the spec to build against.
+**Status: built and live.** Originally written as the spec to build
+against, before any code existed; now kept as the as-built reference —
+update it when the design itself changes, not for routine bug fixes (those
+just go in `doc/processed.md`). Resolution notes for the original build are
+in `doc/processed.md` under "challenge module".
+
+Implementation: schema in `src/db/schema.ts` (`challenges`,
+`challengeTables`), routes in `src/routes/challenges.ts`, sticker presets
+in `src/client/stickers.ts`, child-side widget in `src/client/challenges.ts`,
+parent-dashboard UI in `src/client/parent/main.ts`. Covered by
+`e2e/challenges.spec.ts`.
 
 ## Scope of v1
 - One challenge belongs to exactly one child (no shared/sibling challenges
@@ -88,10 +95,25 @@ relevant type, recompute progress; if the target is now met, write
 progress dropping after completion (e.g. a bad session later) doesn't
 revoke the sticker.
 
+As built, this same recompute-and-maybe-complete check also runs on every
+*read* (both the parent-dashboard list and the child widget's fetch), not
+only the two write-time checkpoints above — a deliberate safety net so a
+missed hook can't leave a challenge stuck open forever, at the cost of the
+reset quirk noted below.
+
 ## Reset
 A parent action, not automatic. Resetting a challenge clears
 `completedAt` back to `null` and sets `startedAt = now()` — same challenge
 definition (type, target, sticker), fresh counter.
+
+**Known quirk (open decision, not yet resolved — see `new-functionality.md`):**
+this only gives a genuinely fresh shot at **time-played** challenges, whose
+progress is windowed by `startedAt`. Table-confidence progress is an
+all-time rolling average with no such window — if the underlying attempts
+already clear the bar, the very next read (which re-runs the completion
+check per above) just re-completes it instantly. Currently left as-is
+(arguably correct: it's honestly reporting current mastery) and pinned as
+an explicit e2e test rather than silently changed.
 
 ## Stickers
 Fixed preset list, not a custom upload or child-chosen-at-completion —the
@@ -120,7 +142,11 @@ map, no asset management needed.
   progress, visible on exactly three screens — home (game select), math
   settings, typing settings — not the exercise or summary screens, which
   stay focused. Table-set selection in the creation form reuses the
-  existing math-settings table-picker component/style.
+  existing math-settings table-picker component/style. Each chip's `title`
+  attribute shows the full requirement + current progress on hover
+  (desktop), and tapping the chip toggles a detail panel with the same text
+  plus the reward line (e.g. "Word 80% zeker van tafels 3, 4 — je zit nu op
+  62%." / "Beloning: 🍪 Koekje"), collapsing again on a second tap.
 
 ## Deferred (explicitly out of scope for v1)
 - **Per-group challenges** (a teacher/group-admin issuing one challenge to
