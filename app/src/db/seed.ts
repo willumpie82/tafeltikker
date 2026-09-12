@@ -19,10 +19,10 @@ async function main() {
 
   const [parent] = await db
     .insert(parents)
-    .values({ username: parentUsername, passwordHash: await hashSecret(parentPassword) })
+    .values({ username: parentUsername, passwordHash: await hashSecret(parentPassword), role: "system_admin" })
     .returning();
 
-  console.log(`Seeded parent "${parentUsername}" / password "${parentPassword}" (change this!).`);
+  console.log(`Seeded system_admin "${parentUsername}" / password "${parentPassword}" (change this!).`);
 
   for (const demoChild of DEMO_CHILDREN) {
     const [child] = await db

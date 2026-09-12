@@ -1,5 +1,5 @@
 general:
-- [ ] add a back & log-out button (exists on the home screen and inside the settings screens, but not once an exercise is running — a child can't get back to home or log out mid-session yet)
+- [x] add a back & log-out button (exists on the home screen and inside the settings screens, but not once an exercise is running — a child can't get back to home or log out mid-session yet) — back arrows on both exercise views now end the session and return home, where logout is one tap away
 - [ ] design registration flow
 - [n] invite new parent using invite url+key
 - [n] system-admin can manage 'parents', reset password

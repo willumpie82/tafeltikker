@@ -5,6 +5,9 @@ export const parents = sqliteTable("parents", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   username: text("username").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
+  role: text("role", { enum: ["parent", "user_admin", "system_admin"] })
+    .notNull()
+    .default("parent"),
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
 
@@ -90,5 +93,17 @@ export const feedback = sqliteTable("feedback", {
     .notNull()
     .references(() => parents.id),
   message: text("message").notNull(),
+  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
+});
+
+export const parentInvites = sqliteTable("parent_invites", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  token: text("token").notNull().unique(),
+  createdBy: integer("created_by")
+    .notNull()
+    .references(() => parents.id),
+  expiresAt: text("expires_at").notNull(),
+  usedBy: integer("used_by").references(() => parents.id),
+  usedAt: text("used_at"),
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
