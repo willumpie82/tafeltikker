@@ -237,9 +237,23 @@ h1 {
   padding: 12px;
   margin-bottom: 12px;
   font-size: 1.2rem;
+  min-height: 140px;
+  box-sizing: border-box;
+  visibility: hidden;
+}
+
+.hint-panel p {
+  margin: 6px 0;
+}
+
+.hint-panel:not(:empty) {
+  visibility: visible;
 }
 
 @media (min-width: 900px) {
+  /* Permanent two-column layout: hints/feedback/table-progress on the left,
+     the exercise + keypad on the right. The table checklist means the left
+     column always has real content, so this never looks like dead space. */
   .math-body {
     display: flex;
     align-items: flex-start;
@@ -247,19 +261,19 @@ h1 {
     text-align: left;
   }
 
-  .math-body .hint-panel {
+  .math-hints-col {
     flex: 0 0 280px;
-    margin-bottom: 0;
+    /* Comes second in the markup (so mobile shows the question before the
+       hint/feedback/checklist block below it), but sits visually first
+       here — order doesn't affect source/reading order, only paint position. */
+    order: 1;
   }
 
   .math-answer-area {
     flex: 1;
     min-width: 0;
     text-align: center;
-  }
-
-  .math-body .hint-panel[hidden] {
-    display: none;
+    order: 2;
   }
 }
 
@@ -303,6 +317,58 @@ h1 {
 .next-label {
   position: relative;
   z-index: 1;
+}
+
+.next-hint {
+  margin-top: 8px;
+  font-size: 0.95rem;
+  color: #888;
+}
+
+.table-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.table-progress-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.table-progress-row .table-label {
+  font-weight: bold;
+  font-size: 0.9rem;
+  align-self: flex-start;
+}
+
+.table-progress-row .table-cells {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.table-progress-cell {
+  flex: 1;
+  min-width: 0;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  background: #e0e0e0;
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.table-progress-cell.done {
+  background: #2f9e44;
+  color: white;
 }
 
 .math-options {

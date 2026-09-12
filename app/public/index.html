@@ -50,24 +50,29 @@
         <div class="math-head">
           <p id="math-progress" class="progress"></p>
           <div class="progress-bar"><div id="math-progress-bar-fill" class="progress-bar-fill"></div></div>
-          <h1 id="math-question"></h1>
-          <p id="math-try-timer" class="progress" hidden></p>
         </div>
 
-        <div class="math-body">
-          <div id="hint-panel" class="hint-panel" hidden></div>
-
+        <div id="math-body" class="math-body">
           <div class="math-answer-area">
+            <h1 id="math-question"></h1>
+            <p id="math-try-timer" class="progress" hidden></p>
+
             <div id="math-options" class="math-options" hidden></div>
 
             <p id="math-answer-display" class="answer-display">&nbsp;</p>
-            <p id="math-feedback" class="math-feedback" hidden></p>
 
             <div id="math-pad" class="pin-pad"></div>
             <button type="button" id="math-next-button" class="big-button next-button" hidden>
               <span class="next-fill"></span>
               <span class="next-label">Volgende &rarr;</span>
             </button>
+            <p id="math-next-hint" class="next-hint" hidden>👉 Klik op Volgende als je klaar bent</p>
+          </div>
+
+          <div class="math-hints-col">
+            <div id="hint-panel" class="hint-panel"></div>
+            <p id="math-feedback" class="math-feedback" hidden></p>
+            <div id="table-progress" class="table-progress"></div>
           </div>
         </div>
       </section>

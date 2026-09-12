@@ -35,6 +35,8 @@ const nextButtonEl = document.getElementById("math-next-button") as HTMLButtonEl
 const summaryHeadingEl = document.getElementById("math-summary-heading")!;
 const progressBarFillEl = document.getElementById("math-progress-bar-fill") as HTMLElement;
 const tryTimerEl = document.getElementById("math-try-timer")!;
+const nextHintEl = document.getElementById("math-next-hint")!;
+const tableProgressEl = document.getElementById("table-progress")!;
 
 let sessionId: number | null = null;
 let queue: Question[] = [];
@@ -48,6 +50,36 @@ let correctCount = 0;
 let triesForCorrect: number[] = [];
 let tryTimerInterval: number | undefined;
 let tryTimeRemaining = 0;
+let correctCombos = new Set<string>();
+
+function comboKey(table: number, multiplier: number): string {
+  return `${table}x${multiplier}`;
+}
+
+function renderTableProgress() {
+  tableProgressEl.innerHTML = "";
+  for (const table of [...selectedTables].sort((a, b) => a - b)) {
+    const row = document.createElement("div");
+    row.className = "table-progress-row";
+
+    const label = document.createElement("span");
+    label.className = "table-label";
+    label.textContent = `Tafel ${table}:`;
+    row.appendChild(label);
+
+    const cells = document.createElement("div");
+    cells.className = "table-cells";
+    for (let multiplier = 1; multiplier <= 10; multiplier++) {
+      const cell = document.createElement("span");
+      cell.className = "table-progress-cell" + (correctCombos.has(comboKey(table, multiplier)) ? " done" : "");
+      cell.textContent = String(multiplier);
+      cells.appendChild(cell);
+    }
+    row.appendChild(cells);
+
+    tableProgressEl.appendChild(row);
+  }
+}
 
 const nextAdvance = setupAutoAdvance(nextButtonEl, AUTO_ADVANCE_MS, () => advanceToNext());
 
@@ -141,23 +173,44 @@ export function startMathSettings() {
   showView("view-math-settings");
 }
 
-function randomMultiplier(): number {
-  return 1 + Math.floor(Math.random() * 10);
+function shuffled<T>(items: T[]): T[] {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
 }
 
 function buildQueue(): Question[] {
-  const tables = [...selectedTables];
-  const questions: Question[] = [];
-  for (let i = 0; i < selectedCount; i++) {
-    const tableNumber = tables[Math.floor(Math.random() * tables.length)];
-    questions.push({ tableNumber, operandA: tableNumber, operandB: randomMultiplier() });
+  const baseQuestions: Question[] = [];
+  for (const tableNumber of selectedTables) {
+    for (let multiplier = 1; multiplier <= 10; multiplier++) {
+      baseQuestions.push({ tableNumber, operandA: tableNumber, operandB: multiplier });
+    }
   }
-  return questions;
+
+  // Shuffle in fresh "laps" through every fact rather than sampling with
+  // replacement, so the same table x multiplier can't turn up twice in a
+  // row just by chance within the chosen count.
+  const questions: Question[] = [];
+  while (questions.length < selectedCount) {
+    questions.push(...shuffled(baseQuestions));
+  }
+  return questions.slice(0, selectedCount);
 }
 
 /** Breaks a table x multiplier question into steps via the nearest round anchor (5 or 10). */
 function hintSteps(table: number, multiplier: number): string[] | null {
-  if (multiplier === 5 || multiplier === 10) return null;
+  if (multiplier === 1 || multiplier === 5 || multiplier === 10) return null;
+
+  // For a small multiplier, decomposing via x5/x10 detours through a bigger
+  // intermediate number than the exercise itself (e.g. 3x2 -> 3x5 - 3x3).
+  // Plain repeated addition is simpler whenever the anchor isn't actually
+  // smaller than the multiplier.
+  if (multiplier < 5) {
+    return [`Nu jij: ${Array(multiplier).fill(table).join(" + ")} = ?`];
+  }
 
   const distanceTo5 = Math.abs(multiplier - 5);
   const distanceTo10 = Math.abs(multiplier - 10);
@@ -182,6 +235,8 @@ async function startSession() {
   targetCount = selectedCount;
   correctCount = 0;
   triesForCorrect = [];
+  correctCombos = new Set();
+  renderTableProgress();
 
   showView("view-math-exercise");
   showQuestion();
@@ -200,9 +255,9 @@ function showQuestion() {
   answerDisplayEl.innerHTML = "&nbsp;";
   feedbackEl.hidden = true;
   nextButtonEl.hidden = true;
+  nextHintEl.hidden = true;
   nextAdvance.cancel();
 
-  hintPanelEl.hidden = true;
   hintPanelEl.innerHTML = "";
 
   if (selectedDifficulty === "easy") {
@@ -252,7 +307,6 @@ async function selectOption(value: number) {
 function showHintPanel(question: Question) {
   const steps = hintSteps(question.tableNumber, question.operandB);
   hintPanelEl.innerHTML = steps ? steps.map((step) => `<p>${step}</p>`).join("") : `<p>Deze is al makkelijk! 😊</p>`;
-  hintPanelEl.hidden = false;
 }
 
 function renderAnswer() {
@@ -280,6 +334,8 @@ async function finalizeAttempt(answerValue: number, hintUsed: boolean) {
     correctCount++;
     // "easy" is always a single shot (try 1); medium/hard track their own tries.
     triesForCorrect.push(selectedDifficulty === "easy" ? 1 : triesUsed);
+    correctCombos.add(comboKey(question.tableNumber, question.operandB));
+    renderTableProgress();
   } else {
     // wrong answers don't count toward progress — try this same fact again later
     queue.push({ ...question });
@@ -290,7 +346,15 @@ async function finalizeAttempt(answerValue: number, hintUsed: boolean) {
   feedbackEl.className = "math-feedback " + (result.correct ? "correct" : "incorrect");
 
   nextButtonEl.hidden = false;
-  nextAdvance.start();
+
+  // A visible hint on a wrong final answer needs reading time — don't rush
+  // that with the auto-advance timer. A correct answer needs no pause, even
+  // if a hint was shown earlier (e.g. Gemiddeld's pre-last-try hint).
+  if (hintUsedForCurrent && !result.correct) {
+    nextHintEl.hidden = false;
+  } else {
+    nextAdvance.start();
+  }
 }
 
 async function resolveTry(answerValue: number) {
