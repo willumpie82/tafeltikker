@@ -1,0 +1,145 @@
+.admin-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  padding: 8px 4px;
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.tab-button.selected {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: bold;
+}
+
+.admin-tab[hidden] {
+  display: none;
+}
+
+.admin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-row {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.admin-row-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-row-header .name {
+  font-weight: bold;
+  flex: 1;
+}
+
+.role-badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #eee;
+  color: #555;
+}
+
+.role-badge.user_admin {
+  background: #d0ebff;
+  color: #1864ab;
+}
+
+.role-badge.system_admin {
+  background: #ffe3e3;
+  color: #c92a2a;
+}
+
+.admin-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-row-actions select,
+.admin-row-actions input {
+  font-size: 0.85rem;
+  padding: 4px 6px;
+}
+
+.admin-row-actions button {
+  font-size: 0.85rem;
+  padding: 6px 10px;
+}
+
+.admin-row-meta {
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 4px;
+}
+
+.invite-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.invite-form input {
+  width: 70px;
+}
+
+.invite-result {
+  background: white;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 20px;
+}
+
+.invite-result input {
+  width: 100%;
+  margin-top: 6px;
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #eee;
+  color: #555;
+}
+
+.status-badge.pending {
+  background: #fff3bf;
+  color: #8c6d1f;
+}
+
+.status-badge.used {
+  background: #d3f9d8;
+  color: #2b8a3e;
+}
+
+.status-badge.expired {
+  background: #ffe3e3;
+  color: #c92a2a;
+}

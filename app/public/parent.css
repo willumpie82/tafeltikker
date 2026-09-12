@@ -94,6 +94,17 @@ button#logout-button {
   margin-bottom: 16px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#admin-link {
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+
 #add-child-button {
   margin-bottom: 16px;
 }

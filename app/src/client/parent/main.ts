@@ -52,10 +52,17 @@ document.getElementById("login-form")!.addEventListener("submit", async (event) 
     return;
   }
 
+  const me = await res.json();
   errorEl.hidden = true;
+  updateAdminLink(me.role);
   await loadDashboard();
   showDashboard();
 });
+
+function updateAdminLink(role: string) {
+  const adminLink = document.getElementById("admin-link") as HTMLAnchorElement;
+  adminLink.hidden = role !== "user_admin" && role !== "system_admin";
+}
 
 document.getElementById("logout-button")!.addEventListener("click", async () => {
   await fetch("/api/parent/logout", { method: "POST" });
@@ -311,6 +318,8 @@ document.getElementById("feedback-form")!.addEventListener("submit", async (even
 async function init() {
   const meRes = await fetch("/api/parent/me");
   if (meRes.ok) {
+    const me = await meRes.json();
+    updateAdminLink(me.role);
     await loadDashboard();
     await loadFeedback();
     showDashboard();

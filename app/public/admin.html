@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tafeltikker — Beheer</title>
+    <link rel="stylesheet" href="/parent.css" />
+    <link rel="stylesheet" href="/admin.css" />
+  </head>
+  <body>
+    <main id="admin-app" hidden>
+      <header class="dashboard-header">
+        <h1>Beheer</h1>
+        <div class="header-actions">
+          <a href="/parent.html">&larr; Dashboard</a>
+          <button type="button" id="admin-logout-button">Uitloggen</button>
+        </div>
+      </header>
+
+      <nav class="admin-tabs">
+        <button type="button" class="tab-button selected" data-tab="parents">Ouders</button>
+        <button type="button" class="tab-button" data-tab="children">Kinderen</button>
+        <button type="button" class="tab-button" data-tab="feedback">Feedback</button>
+        <button type="button" class="tab-button" data-tab="invites">Uitnodigingen</button>
+      </nav>
+
+      <section id="admin-tab-parents" class="admin-tab">
+        <div id="parents-list" class="admin-list"></div>
+      </section>
+
+      <section id="admin-tab-children" class="admin-tab" hidden>
+        <div id="admin-children-list" class="admin-list"></div>
+      </section>
+
+      <section id="admin-tab-feedback" class="admin-tab" hidden>
+        <div id="admin-feedback-list" class="feedback-list"></div>
+      </section>
+
+      <section id="admin-tab-invites" class="admin-tab" hidden>
+        <form id="invite-form" class="invite-form">
+          <label>
+            Geldig (dagen)
+            <input type="number" id="invite-days" min="1" value="7" />
+          </label>
+          <button type="submit">Genereer uitnodiging</button>
+        </form>
+        <div id="invite-result" class="invite-result" hidden>
+          <p>Deel deze link met de nieuwe ouder:</p>
+          <input type="text" id="invite-url" readonly />
+        </div>
+        <div id="invites-list" class="admin-list"></div>
+      </section>
+    </main>
+
+    <p id="admin-denied" class="version-tag" hidden>Je hebt geen toegang tot deze pagina.</p>
+
+    <script type="module" src="/admin.js"></script>
+  </body>
+</html>

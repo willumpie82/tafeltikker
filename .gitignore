@@ -4,6 +4,10 @@ app/public/app.js
 app/public/app.js.map
 app/public/parent.js
 app/public/parent.js.map
+app/public/admin.js
+app/public/admin.js.map
+app/public/register.js
+app/public/register.js.map
 *.sqlite
 *.sqlite-journal
 *.sqlite-shm
