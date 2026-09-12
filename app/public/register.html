@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tafeltikker — Account aanmaken</title>
+    <link rel="stylesheet" href="/parent.css" />
+  </head>
+  <body>
+    <main id="register-app">
+      <section id="register-view-invalid" class="parent-view" hidden>
+        <h1>Ongeldige uitnodiging</h1>
+        <p>Deze uitnodigingslink is niet (meer) geldig — mogelijk is hij al gebruikt of verlopen. Vraag een nieuwe link aan bij de beheerder.</p>
+        <a href="/parent.html">&larr; Naar het ouderportaal</a>
+      </section>
+
+      <section id="register-view-form" class="parent-view" hidden>
+        <h1>Account aanmaken</h1>
+        <form id="register-form">
+          <label>
+            Gebruikersnaam
+            <input type="text" id="register-username" autocomplete="username" required />
+          </label>
+          <label>
+            Wachtwoord
+            <input type="password" id="register-password" autocomplete="new-password" required />
+          </label>
+          <p id="register-error" class="error-text" hidden></p>
+          <button type="submit">Account aanmaken</button>
+        </form>
+      </section>
+
+      <p id="register-loading">Uitnodiging controleren...</p>
+    </main>
+
+    <script type="module" src="/register.js"></script>
+  </body>
+</html>
