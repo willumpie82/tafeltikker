@@ -1,12 +1,9 @@
 import type { FastifyInstance } from "fastify";
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { parents, children, parentChild, practiceSessions, mathAttempts } from "../db/schema.js";
+import { parents, children, parentChild, practiceSessions, mathAttempts, typingAttempts, feedback } from "../db/schema.js";
 import { hashSecret, isValidPin, verifySecret } from "../auth/password.js";
-
-function requireParent(request: { parentSession: { get(key: "parentId"): number | undefined } }) {
-  return request.parentSession.get("parentId");
-}
+import { requireParentId } from "../auth/require.js";
 
 async function assertOwnsChild(parentId: number, childId: number): Promise<boolean> {
   const [link] = await db
@@ -38,7 +35,7 @@ export default async function parentRoutes(app: FastifyInstance) {
   });
 
   app.get("/api/parent/me", async (request, reply) => {
-    const parentId = requireParent(request);
+    const parentId = requireParentId(request);
     if (!parentId) return reply.code(401).send({ error: "not_authenticated" });
 
     const [parent] = await db.select({ id: parents.id, username: parents.username }).from(parents).where(eq(parents.id, parentId));
@@ -50,7 +47,7 @@ export default async function parentRoutes(app: FastifyInstance) {
   });
 
   app.get("/api/parent/children", async (request, reply) => {
-    const parentId = requireParent(request);
+    const parentId = requireParentId(request);
     if (!parentId) return reply.code(401).send({ error: "not_authenticated" });
 
     const rows = await db
@@ -63,7 +60,7 @@ export default async function parentRoutes(app: FastifyInstance) {
   });
 
   app.post<{ Body: { name: string; avatarId: string; pin: string } }>("/api/parent/children", async (request, reply) => {
-    const parentId = requireParent(request);
+    const parentId = requireParentId(request);
     if (!parentId) return reply.code(401).send({ error: "not_authenticated" });
 
     const { name, avatarId, pin } = request.body ?? {};
@@ -84,7 +81,7 @@ export default async function parentRoutes(app: FastifyInstance) {
   app.patch<{ Params: { id: string }; Body: { name?: string; avatarId?: string; pin?: string } }>(
     "/api/parent/children/:id",
     async (request, reply) => {
-      const parentId = requireParent(request);
+      const parentId = requireParentId(request);
       if (!parentId) return reply.code(401).send({ error: "not_authenticated" });
 
       const childId = Number(request.params.id);
@@ -117,7 +114,7 @@ export default async function parentRoutes(app: FastifyInstance) {
   );
 
   app.get<{ Params: { id: string } }>("/api/parent/children/:id/stats", async (request, reply) => {
-    const parentId = requireParent(request);
+    const parentId = requireParentId(request);
     if (!parentId) return reply.code(401).send({ error: "not_authenticated" });
 
     const childId = Number(request.params.id);
@@ -156,10 +153,50 @@ export default async function parentRoutes(app: FastifyInstance) {
       .groupBy(sql`date(${mathAttempts.answeredAt})`)
       .orderBy(sql`date(${mathAttempts.answeredAt})`);
 
+    const perTypingLevel = await db
+      .select({
+        level: typingAttempts.level,
+        total: sql<number>`count(*)`,
+        avgAccuracy: sql<number>`round(avg(${typingAttempts.accuracy}), 1)`,
+        avgWpm: sql<number>`round(avg(${typingAttempts.wpm}), 1)`,
+      })
+      .from(typingAttempts)
+      .where(eq(typingAttempts.childId, childId))
+      .groupBy(typingAttempts.level);
+
     return {
       time: timeRow,
       perTable,
       trend,
+      perTypingLevel,
     };
+  });
+
+  app.get("/api/parent/feedback", async (request, reply) => {
+    const parentId = requireParentId(request);
+    if (!parentId) return reply.code(401).send({ error: "not_authenticated" });
+
+    return db
+      .select({ id: feedback.id, message: feedback.message, createdAt: feedback.createdAt })
+      .from(feedback)
+      .where(eq(feedback.parentId, parentId))
+      .orderBy(desc(feedback.createdAt));
+  });
+
+  app.post<{ Body: { message: string } }>("/api/parent/feedback", async (request, reply) => {
+    const parentId = requireParentId(request);
+    if (!parentId) return reply.code(401).send({ error: "not_authenticated" });
+
+    const message = request.body?.message?.trim();
+    if (!message) {
+      return reply.code(400).send({ error: "invalid_request" });
+    }
+
+    const [row] = await db
+      .insert(feedback)
+      .values({ parentId, message })
+      .returning({ id: feedback.id, message: feedback.message, createdAt: feedback.createdAt });
+
+    return row;
   });
 }

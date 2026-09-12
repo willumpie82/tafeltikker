@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { children } from "../db/schema.js";
 import { isValidPin, verifySecret } from "../auth/password.js";
+import { requireChildId } from "../auth/require.js";
 
 export default async function childRoutes(app: FastifyInstance) {
   app.get("/api/child/avatars", async () => {
@@ -34,7 +35,7 @@ export default async function childRoutes(app: FastifyInstance) {
   });
 
   app.get("/api/child/me", async (request, reply) => {
-    const childId = request.childSession.get("childId");
+    const childId = requireChildId(request);
     if (!childId) {
       return reply.code(401).send({ error: "not_authenticated" });
     }

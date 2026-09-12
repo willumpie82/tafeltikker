@@ -1,5 +1,6 @@
 import { showView } from "./views.js";
 import { startMathSettings } from "./math.js";
+import { startTypingSettings } from "./typing.js";
 import { emojiFor } from "./avatars.js";
 
 type Avatar = { id: number; name: string; avatarId: string };
@@ -115,6 +116,10 @@ document.getElementById("parent-icon")!.addEventListener("click", () => {
 
 document.getElementById("start-math-button")!.addEventListener("click", () => {
   startMathSettings();
+});
+
+document.getElementById("start-typing-button")!.addEventListener("click", () => {
+  startTypingSettings();
 });
 
 async function init() {

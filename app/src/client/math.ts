@@ -1,36 +1,81 @@
 import { showView } from "./views.js";
+import { setupAutoAdvance } from "./next-button.js";
 
 type Question = { tableNumber: number; operandA: number; operandB: number };
+type Difficulty = "easy" | "medium" | "hard";
 
 const COUNT_OPTIONS = [5, 10, 20];
+const DIFFICULTIES: { id: Difficulty; label: string }[] = [
+  { id: "easy", label: "Makkelijk" },
+  { id: "medium", label: "Gemiddeld" },
+  { id: "hard", label: "Moeilijk" },
+];
+const MAX_TRIES = 3; // used by both "medium" and "hard"
+const AUTO_ADVANCE_MS = 3000;
+const HARD_TRY_SECONDS = 8; // "hard" only: run out of time on a try and it's marked wrong
 
 const selectedTables = new Set<number>();
 let selectedCount = 10;
-let hintsEnabled = false;
+let selectedDifficulty: Difficulty = "medium";
 
 const tablePickerEl = document.getElementById("table-picker")!;
 const countPickerEl = document.getElementById("count-picker")!;
-const hintsToggleEl = document.getElementById("hints-toggle") as HTMLInputElement;
+const difficultyPickerEl = document.getElementById("difficulty-picker")!;
 const startButtonEl = document.getElementById("math-start-button") as HTMLButtonElement;
 
 const progressEl = document.getElementById("math-progress")!;
 const questionEl = document.getElementById("math-question")!;
-const hintButtonEl = document.getElementById("hint-button")!;
 const hintPanelEl = document.getElementById("hint-panel")!;
+const optionsEl = document.getElementById("math-options")!;
 const answerDisplayEl = document.getElementById("math-answer-display")!;
 const feedbackEl = document.getElementById("math-feedback")!;
 const mathPadEl = document.getElementById("math-pad")!;
 const nextButtonEl = document.getElementById("math-next-button") as HTMLButtonElement;
 
 const summaryHeadingEl = document.getElementById("math-summary-heading")!;
+const progressBarFillEl = document.getElementById("math-progress-bar-fill") as HTMLElement;
+const tryTimerEl = document.getElementById("math-try-timer")!;
 
 let sessionId: number | null = null;
 let queue: Question[] = [];
 let currentIndex = 0;
+let targetCount = 0;
 let currentAnswer = "";
 let answered = false;
 let hintUsedForCurrent = false;
+let triesUsed = 0;
 let correctCount = 0;
+let triesForCorrect: number[] = [];
+let tryTimerInterval: number | undefined;
+let tryTimeRemaining = 0;
+
+const nextAdvance = setupAutoAdvance(nextButtonEl, AUTO_ADVANCE_MS, () => advanceToNext());
+
+function startTryTimerIfNeeded() {
+  cancelTryTimer();
+  if (selectedDifficulty !== "hard") return;
+
+  tryTimeRemaining = HARD_TRY_SECONDS;
+  tryTimerEl.hidden = false;
+  tryTimerEl.textContent = `⏱ ${tryTimeRemaining}s`;
+  tryTimerInterval = window.setInterval(() => {
+    tryTimeRemaining--;
+    if (tryTimeRemaining <= 0) {
+      cancelTryTimer();
+      if (!answered) resolveTry(-1);
+      return;
+    }
+    tryTimerEl.textContent = `⏱ ${tryTimeRemaining}s`;
+  }, 1000);
+}
+
+function cancelTryTimer() {
+  if (tryTimerInterval !== undefined) {
+    window.clearInterval(tryTimerInterval);
+    tryTimerInterval = undefined;
+  }
+  tryTimerEl.hidden = true;
+}
 
 function buildTablePicker() {
   tablePickerEl.innerHTML = "";
@@ -70,10 +115,28 @@ function buildCountPicker() {
   }
 }
 
+function buildDifficultyPicker() {
+  difficultyPickerEl.innerHTML = "";
+  difficultyPickerEl.style.gridTemplateColumns = "repeat(3, 1fr)";
+  for (const difficulty of DIFFICULTIES) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = difficulty.label;
+    button.className = "table-button";
+    button.classList.toggle("selected", difficulty.id === selectedDifficulty);
+    button.addEventListener("click", () => {
+      selectedDifficulty = difficulty.id;
+      difficultyPickerEl.querySelectorAll(".table-button").forEach((el) => el.classList.remove("selected"));
+      button.classList.add("selected");
+    });
+    difficultyPickerEl.appendChild(button);
+  }
+}
+
 export function startMathSettings() {
   buildTablePicker();
   buildCountPicker();
-  hintsToggleEl.checked = hintsEnabled;
+  buildDifficultyPicker();
   startButtonEl.disabled = selectedTables.size === 0;
   showView("view-math-settings");
 }
@@ -105,7 +168,7 @@ function hintSteps(table: number, multiplier: number): string[] | null {
   return [
     `${table} × ${anchor} = ${table * anchor}`,
     `${table} × ${diff} = ${table * diff}`,
-    `${table * anchor} ${op} ${table * diff} = ${table * multiplier}`,
+    `Nu jij: ${table * anchor} ${op} ${table * diff} = ?`,
   ];
 }
 
@@ -114,10 +177,11 @@ async function startSession() {
   const data = await res.json();
   sessionId = data.sessionId;
 
-  hintsEnabled = hintsToggleEl.checked;
   queue = buildQueue();
   currentIndex = 0;
+  targetCount = selectedCount;
   correctCount = 0;
+  triesForCorrect = [];
 
   showView("view-math-exercise");
   showQuestion();
@@ -125,46 +189,79 @@ async function startSession() {
 
 function showQuestion() {
   const question = queue[currentIndex];
-  progressEl.textContent = `Vraag ${currentIndex + 1} van ${queue.length}`;
+  progressEl.textContent = `Goed: ${correctCount} van de ${targetCount}`;
+  progressBarFillEl.style.width = `${(correctCount / targetCount) * 100}%`;
   questionEl.textContent = `${question.operandA} × ${question.operandB} = ?`;
 
   currentAnswer = "";
   answered = false;
   hintUsedForCurrent = false;
+  triesUsed = 0;
   answerDisplayEl.innerHTML = "&nbsp;";
   feedbackEl.hidden = true;
   nextButtonEl.hidden = true;
+  nextAdvance.cancel();
 
   hintPanelEl.hidden = true;
   hintPanelEl.innerHTML = "";
-  hintButtonEl.hidden = !hintsEnabled;
 
-  buildMathPad();
+  if (selectedDifficulty === "easy") {
+    optionsEl.hidden = false;
+    mathPadEl.hidden = true;
+    answerDisplayEl.hidden = true;
+    buildOptions(question);
+  } else {
+    optionsEl.hidden = true;
+    mathPadEl.hidden = false;
+    answerDisplayEl.hidden = false;
+    buildMathPad();
+  }
+
+  startTryTimerIfNeeded();
 }
 
-hintButtonEl.addEventListener("click", () => {
-  const question = queue[currentIndex];
-  const steps = hintSteps(question.tableNumber, question.operandB);
-  hintUsedForCurrent = true;
-
-  if (!steps) {
-    hintPanelEl.innerHTML = `<p>Deze is al makkelijk! 😊</p>`;
-  } else {
-    hintPanelEl.innerHTML = steps.map((step) => `<p>${step}</p>`).join("");
+function buildOptions(question: Question) {
+  const correct = question.operandA * question.operandB;
+  const options = new Set<number>([correct]);
+  while (options.size < 4) {
+    const delta = Math.floor(Math.random() * 10) + 1;
+    const sign = Math.random() < 0.5 ? -1 : 1;
+    const candidate = correct + sign * delta;
+    if (candidate >= 0) options.add(candidate);
   }
+  const shuffled = [...options].sort(() => Math.random() - 0.5);
+
+  optionsEl.innerHTML = "";
+  for (const value of shuffled) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "option-button";
+    button.textContent = String(value);
+    button.addEventListener("click", () => selectOption(value));
+    optionsEl.appendChild(button);
+  }
+}
+
+async function selectOption(value: number) {
+  if (answered) return;
+  answered = true;
+  optionsEl.querySelectorAll("button").forEach((b) => ((b as HTMLButtonElement).disabled = true));
+  await finalizeAttempt(value, false);
+}
+
+function showHintPanel(question: Question) {
+  const steps = hintSteps(question.tableNumber, question.operandB);
+  hintPanelEl.innerHTML = steps ? steps.map((step) => `<p>${step}</p>`).join("") : `<p>Deze is al makkelijk! 😊</p>`;
   hintPanelEl.hidden = false;
-});
+}
 
 function renderAnswer() {
-  answerDisplayEl.textContent = currentAnswer.length ? currentAnswer : " ";
+  answerDisplayEl.textContent = currentAnswer.length ? currentAnswer : " ";
 }
 
-async function submitAnswer() {
-  if (answered || currentAnswer.length === 0 || sessionId === null) return;
-  answered = true;
-
+async function finalizeAttempt(answerValue: number, hintUsed: boolean) {
+  if (sessionId === null) return;
   const question = queue[currentIndex];
-  const answer = Number(currentAnswer);
 
   const res = await fetch(`/api/child/math/sessions/${sessionId}/attempts`, {
     method: "POST",
@@ -173,23 +270,82 @@ async function submitAnswer() {
       tableNumber: question.tableNumber,
       operandA: question.operandA,
       operandB: question.operandB,
-      answer,
-      hintUsed: hintUsedForCurrent,
+      answer: answerValue,
+      hintUsed,
     }),
   });
   const result = await res.json();
 
-  feedbackEl.hidden = false;
   if (result.correct) {
     correctCount++;
-    feedbackEl.textContent = "Goed zo! 🎉";
-    feedbackEl.className = "math-feedback correct";
+    // "easy" is always a single shot (try 1); medium/hard track their own tries.
+    triesForCorrect.push(selectedDifficulty === "easy" ? 1 : triesUsed);
   } else {
-    feedbackEl.textContent = `Bijna! Het antwoord is ${result.correctAnswer}.`;
-    feedbackEl.className = "math-feedback incorrect";
+    // wrong answers don't count toward progress — try this same fact again later
+    queue.push({ ...question });
   }
 
+  feedbackEl.hidden = false;
+  feedbackEl.textContent = result.correct ? "Goed zo! 🎉" : `Het antwoord is ${result.correctAnswer}. Deze komt straks nog een keer terug.`;
+  feedbackEl.className = "math-feedback " + (result.correct ? "correct" : "incorrect");
+
   nextButtonEl.hidden = false;
+  nextAdvance.start();
+}
+
+async function resolveTry(answerValue: number) {
+  if (answered || sessionId === null) return;
+
+  const question = queue[currentIndex];
+  const correctAnswer = question.operandA * question.operandB;
+
+  triesUsed++;
+  const isCorrect = answerValue === correctAnswer;
+  const isFinalTry = triesUsed >= MAX_TRIES;
+
+  if (isCorrect) {
+    answered = true;
+    cancelTryTimer();
+    await finalizeAttempt(answerValue, hintUsedForCurrent);
+    return;
+  }
+
+  if (isFinalTry) {
+    answered = true;
+    cancelTryTimer();
+    if (selectedDifficulty === "hard") {
+      // no help while solving on "hard" — only explain once all tries are gone
+      hintUsedForCurrent = true;
+      showHintPanel(question);
+    }
+    await finalizeAttempt(answerValue, hintUsedForCurrent);
+    return;
+  }
+
+  // wrong, tries remain
+  currentAnswer = "";
+  renderAnswer();
+  feedbackEl.hidden = false;
+  feedbackEl.className = "math-feedback retry";
+
+  if (selectedDifficulty === "medium" && triesUsed === MAX_TRIES - 1) {
+    // "medium" gets a hint before the last try; "hard" never does
+    hintUsedForCurrent = true;
+    showHintPanel(question);
+    feedbackEl.textContent = "Laatste kans! Hier is een hintje.";
+  } else {
+    feedbackEl.textContent = `Bijna! Probeer nog eens (nog ${MAX_TRIES - triesUsed} keer).`;
+  }
+
+  startTryTimerIfNeeded();
+}
+
+async function submitAnswer() {
+  if (answered || currentAnswer.length === 0 || sessionId === null) return;
+  // "easy" answers via buildOptions()/selectOption(), never the numpad.
+  if (selectedDifficulty === "easy") return;
+
+  await resolveTry(Number(currentAnswer));
 }
 
 function buildMathPad() {
@@ -230,20 +386,55 @@ function buildMathPad() {
   mathPadEl.appendChild(submitButton);
 }
 
-nextButtonEl.addEventListener("click", async () => {
+async function advanceToNext() {
   currentIndex++;
-  if (currentIndex >= queue.length) {
+  if (correctCount >= targetCount) {
     if (sessionId !== null) {
       await fetch(`/api/child/math/sessions/${sessionId}/finish`, { method: "POST" });
     }
-    summaryHeadingEl.textContent = `Je had ${correctCount} van de ${queue.length} goed! 🎉`;
+    const tryWeight = (tryNumber: number) => (tryNumber <= 1 ? 1 : tryNumber === 2 ? 0.66 : 0.33);
+    const avgScore = Math.round(
+      (triesForCorrect.reduce((sum, tryNumber) => sum + tryWeight(tryNumber), 0) / targetCount) * 100,
+    );
+    summaryHeadingEl.textContent =
+      avgScore >= 100
+        ? `Geweldig! Alle ${targetCount} sommen in één keer goed! 🎉`
+        : `Je hebt alle ${targetCount} sommen goed gemaakt! Gemiddelde score: ${avgScore}% 🎉`;
     showView("view-math-summary");
     return;
   }
   showQuestion();
+}
+
+const exerciseViewEl = document.getElementById("view-math-exercise") as HTMLElement;
+
+document.addEventListener("keydown", (event) => {
+  if (exerciseViewEl.hidden || selectedDifficulty === "easy" || answered) return;
+
+  if (event.key >= "0" && event.key <= "9") {
+    if (currentAnswer.length >= 3) return;
+    currentAnswer += event.key;
+    renderAnswer();
+  } else if (event.key === "Backspace") {
+    event.preventDefault();
+    currentAnswer = currentAnswer.slice(0, -1);
+    renderAnswer();
+  } else if (event.key === "Enter") {
+    submitAnswer();
+  }
 });
 
 document.getElementById("math-settings-back")!.addEventListener("click", () => {
+  showView("view-home");
+});
+
+document.getElementById("math-exercise-back")!.addEventListener("click", async () => {
+  nextAdvance.cancel();
+  cancelTryTimer();
+  if (sessionId !== null) {
+    await fetch(`/api/child/math/sessions/${sessionId}/finish`, { method: "POST" });
+    sessionId = null;
+  }
   showView("view-home");
 });
 

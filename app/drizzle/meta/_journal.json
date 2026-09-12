@@ -15,6 +15,20 @@
       "when": 1789205840875,
       "tag": "0001_unique_marvel_boy",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789206607459,
+      "tag": "0002_worried_james_howlett",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1789213911608,
+      "tag": "0003_chief_mathemanic",
+      "breakpoints": true
     }
   ]
 }

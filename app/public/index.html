@@ -11,6 +11,7 @@
       <section id="view-avatars" class="view">
         <h1>Wie ben jij?</h1>
         <div id="avatar-grid" class="avatar-grid"></div>
+        <p class="version-tag">Tafeltikker · beta v0.1</p>
       </section>
 
       <section id="view-pin" class="view" hidden>
@@ -26,6 +27,7 @@
       <section id="view-home" class="view" hidden>
         <h1 id="home-greeting">Hallo!</h1>
         <button type="button" id="start-math-button" class="big-button">Sommen oefenen</button>
+        <button type="button" id="start-typing-button" class="big-button">Typen oefenen</button>
         <button type="button" id="logout-button">Uitloggen</button>
       </section>
 
@@ -37,31 +39,72 @@
         <h2>Hoeveel sommen?</h2>
         <div id="count-picker" class="count-picker"></div>
 
-        <label class="hint-toggle">
-          <input type="checkbox" id="hints-toggle" />
-          Ik wil hints kunnen gebruiken
-        </label>
+        <h2>Hoe moeilijk?</h2>
+        <div id="difficulty-picker" class="table-picker"></div>
 
         <button type="button" id="math-start-button" class="big-button" disabled>Start!</button>
       </section>
 
       <section id="view-math-exercise" class="view" hidden>
-        <p id="math-progress" class="progress"></p>
-        <h1 id="math-question"></h1>
+        <button type="button" id="math-exercise-back" class="back-button" aria-label="Stoppen en terug naar start">&larr;</button>
+        <div class="math-head">
+          <p id="math-progress" class="progress"></p>
+          <div class="progress-bar"><div id="math-progress-bar-fill" class="progress-bar-fill"></div></div>
+          <h1 id="math-question"></h1>
+          <p id="math-try-timer" class="progress" hidden></p>
+        </div>
 
-        <button type="button" id="hint-button" class="hint-button" hidden>Hint?</button>
-        <div id="hint-panel" class="hint-panel" hidden></div>
+        <div class="math-body">
+          <div id="hint-panel" class="hint-panel" hidden></div>
 
-        <p id="math-answer-display" class="answer-display">&nbsp;</p>
-        <p id="math-feedback" class="math-feedback" hidden></p>
+          <div class="math-answer-area">
+            <div id="math-options" class="math-options" hidden></div>
 
-        <div id="math-pad" class="pin-pad"></div>
-        <button type="button" id="math-next-button" class="big-button" hidden>Volgende &rarr;</button>
+            <p id="math-answer-display" class="answer-display">&nbsp;</p>
+            <p id="math-feedback" class="math-feedback" hidden></p>
+
+            <div id="math-pad" class="pin-pad"></div>
+            <button type="button" id="math-next-button" class="big-button next-button" hidden>
+              <span class="next-fill"></span>
+              <span class="next-label">Volgende &rarr;</span>
+            </button>
+          </div>
+        </div>
       </section>
 
       <section id="view-math-summary" class="view" hidden>
         <h1 id="math-summary-heading"></h1>
         <button type="button" id="math-summary-done" class="big-button">Terug naar start</button>
+      </section>
+
+      <section id="view-typing-settings" class="view" hidden>
+        <button type="button" id="typing-settings-back" class="back-button" aria-label="Terug">&larr;</button>
+        <h1>Wat wil je typen?</h1>
+        <div id="level-picker" class="table-picker"></div>
+
+        <h2>Hoeveel oefeningen?</h2>
+        <div id="typing-count-picker" class="count-picker"></div>
+
+        <button type="button" id="typing-start-button" class="big-button">Start!</button>
+      </section>
+
+      <section id="view-typing-exercise" class="view" hidden>
+        <button type="button" id="typing-exercise-back" class="back-button" aria-label="Stoppen en terug naar start">&larr;</button>
+        <p id="typing-progress" class="progress"></p>
+        <div class="progress-bar"><div id="typing-progress-bar-fill" class="progress-bar-fill"></div></div>
+        <p id="typing-prompt" class="typing-prompt"></p>
+        <input type="text" id="typing-input" class="typing-input" autocomplete="off" autocapitalize="off" spellcheck="false" />
+        <div id="onscreen-keyboard" class="onscreen-keyboard"></div>
+        <p id="typing-feedback" class="math-feedback" hidden></p>
+        <button type="button" id="typing-next-button" class="big-button next-button" hidden>
+          <span class="next-fill"></span>
+          <span class="next-label">Volgende &rarr;</span>
+        </button>
+      </section>
+
+      <section id="view-typing-summary" class="view" hidden>
+        <h1 id="typing-summary-heading"></h1>
+        <button type="button" id="typing-summary-done" class="big-button">Terug naar start</button>
       </section>
     </main>
 

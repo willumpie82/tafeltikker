@@ -6,6 +6,7 @@ import sessionPlugin from "./auth/session.js";
 import childRoutes from "./routes/child.js";
 import mathRoutes from "./routes/math.js";
 import parentRoutes from "./routes/parent.js";
+import typingRoutes from "./routes/typing.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -21,6 +22,7 @@ await app.register(fastifyStatic, {
 await app.register(childRoutes);
 await app.register(mathRoutes);
 await app.register(parentRoutes);
+await app.register(typingRoutes);
 
 app.get("/healthz", async () => ({ status: "ok" }));
 

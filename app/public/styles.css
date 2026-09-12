@@ -20,6 +20,10 @@ body {
   font-family: "Comic Sans MS", "Trebuchet MS", system-ui, sans-serif;
   display: flex;
   align-items: center;
+  /* plain "center" clips the top of tall content (e.g. hint panel pushing
+     the numpad past the viewport) with no way to scroll to it; "safe center"
+     falls back to start-alignment instead of clipping when content overflows. */
+  align-items: safe center;
   justify-content: center;
   padding: 16px;
 }
@@ -28,6 +32,12 @@ body {
   width: 100%;
   max-width: 640px;
   text-align: center;
+}
+
+@media (min-width: 900px) {
+  #app {
+    max-width: 800px;
+  }
 }
 
 h1 {
@@ -196,33 +206,29 @@ h1 {
   color: white;
 }
 
-.hint-toggle {
-  display: block;
-  font-size: 1.1rem;
-  margin: 20px 0;
-}
-
-.hint-toggle input {
-  width: 24px;
-  height: 24px;
-  vertical-align: middle;
-  margin-right: 8px;
-}
-
 .progress {
   color: #888;
   font-weight: bold;
 }
 
-.hint-button {
-  font-size: 1rem;
-  padding: 8px 20px;
-  border: 2px solid var(--accent);
-  border-radius: 20px;
-  background: white;
-  color: var(--accent);
-  cursor: pointer;
-  margin-bottom: 12px;
+.progress-bar {
+  height: 10px;
+  max-width: 320px;
+  margin: 0 auto 20px;
+  background: #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.math-body {
+  text-align: center;
 }
 
 .hint-panel {
@@ -231,6 +237,30 @@ h1 {
   padding: 12px;
   margin-bottom: 12px;
   font-size: 1.2rem;
+}
+
+@media (min-width: 900px) {
+  .math-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    text-align: left;
+  }
+
+  .math-body .hint-panel {
+    flex: 0 0 280px;
+    margin-bottom: 0;
+  }
+
+  .math-answer-area {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+  }
+
+  .math-body .hint-panel[hidden] {
+    display: none;
+  }
 }
 
 .answer-display {
@@ -253,10 +283,158 @@ h1 {
   color: var(--error);
 }
 
+.math-feedback.retry {
+  color: #e8590c;
+}
+
+.next-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.next-fill {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  background: rgba(255, 255, 255, 0.35);
+  z-index: 0;
+}
+
+.next-label {
+  position: relative;
+  z-index: 1;
+}
+
+.math-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  max-width: 400px;
+  margin: 0 auto 20px;
+}
+
+.option-button {
+  font-size: 1.8rem;
+  padding: 24px 0;
+  border: none;
+  border-radius: 16px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--accent-dark);
+}
+
+.option-button:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--accent-dark);
+}
+
+.option-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .submit-button {
   grid-column: span 3;
   background: #2f9e44 !important;
   box-shadow: 0 4px 0 #217a34 !important;
+}
+
+.typing-prompt {
+  font-size: 2rem;
+  font-family: "Courier New", monospace;
+  letter-spacing: 2px;
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  min-height: 1.5em;
+  word-wrap: break-word;
+}
+
+.typing-prompt .char {
+  color: #bbb;
+}
+
+.typing-prompt .char.correct {
+  color: #2f9e44;
+}
+
+.typing-prompt .char.incorrect {
+  color: var(--error);
+  text-decoration: underline;
+}
+
+.typing-prompt .char.current {
+  background: #fff3bf;
+  border-radius: 4px;
+}
+
+.typing-input {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  margin: 20px auto;
+  font-size: 1.6rem;
+  font-family: "Courier New", monospace;
+  padding: 12px;
+  border: 3px solid var(--accent);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.onscreen-keyboard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 16px auto 0;
+  max-width: 480px;
+}
+
+.keyboard-row {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.key-button {
+  font-size: 1.1rem;
+  padding: 10px 0;
+  min-width: 32px;
+  flex: 1;
+  max-width: 42px;
+  border: none;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 3px 0 #ccc;
+  cursor: pointer;
+}
+
+.key-button:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #ccc;
+}
+
+.key-button.highlight {
+  background: #fff3bf;
+  box-shadow: 0 3px 0 #e8b923;
+}
+
+.key-space {
+  flex: 4;
+  max-width: none;
+}
+
+.key-backspace {
+  flex: 1.5;
+  max-width: none;
+  background: #f1f1f1;
+}
+
+.version-tag {
+  margin-top: 24px;
+  font-size: 0.75rem;
+  color: #aaa;
 }
 
 #parent-icon {

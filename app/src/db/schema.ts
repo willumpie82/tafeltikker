@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, primaryKey, index } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 export const parents = sqliteTable("parents", {
@@ -63,3 +63,32 @@ export const mathAttempts = sqliteTable(
   },
   (table) => [index("math_attempts_child_idx").on(table.childId, table.answeredAt)],
 );
+
+export const typingAttempts = sqliteTable(
+  "typing_attempts",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    sessionId: integer("session_id")
+      .notNull()
+      .references(() => practiceSessions.id),
+    childId: integer("child_id")
+      .notNull()
+      .references(() => children.id),
+    level: text("level", { enum: ["letters", "words", "sentences"] }).notNull(),
+    promptText: text("prompt_text").notNull(),
+    typedText: text("typed_text").notNull(),
+    wpm: real("wpm").notNull(),
+    accuracy: real("accuracy").notNull(),
+    answeredAt: text("answered_at").notNull().default(sql`(current_timestamp)`),
+  },
+  (table) => [index("typing_attempts_child_idx").on(table.childId, table.answeredAt)],
+);
+
+export const feedback = sqliteTable("feedback", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  parentId: integer("parent_id")
+    .notNull()
+    .references(() => parents.id),
+  message: text("message").notNull(),
+  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
+});

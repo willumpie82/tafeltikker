@@ -5,6 +5,13 @@ type Stats = {
   time: { totalSeconds: number; todaySeconds: number; weekSeconds: number };
   perTable: { tableNumber: number; total: number; correct: number }[];
   trend: { day: string; total: number; correct: number }[];
+  perTypingLevel: { level: string; total: number; avgAccuracy: number; avgWpm: number }[];
+};
+
+const TYPING_LEVEL_LABELS: Record<string, string> = {
+  letters: "Letters",
+  words: "Woorden",
+  sentences: "Zinnetjes",
 };
 
 const loginView = document.getElementById("parent-view-login")!;
@@ -139,6 +146,21 @@ function renderTrend(trend: Stats["trend"]): string {
     .join("")}</div>`;
 }
 
+function renderTypingLevels(perTypingLevel: Stats["perTypingLevel"]): string {
+  if (perTypingLevel.length === 0) {
+    return `<p class="no-data">Nog geen typen geoefend.</p>`;
+  }
+  return `<div class="table-accuracy-list">${perTypingLevel
+    .map((row) => {
+      const label = TYPING_LEVEL_LABELS[row.level] ?? row.level;
+      return `<div class="table-accuracy-row">
+        ${label}: ${row.avgAccuracy}% nauwkeurig, ${row.avgWpm} wpm (${row.total}x)
+        <div class="accuracy-bar"><div class="accuracy-bar-fill" style="width:${row.avgAccuracy}%"></div></div>
+      </div>`;
+    })
+    .join("")}</div>`;
+}
+
 async function loadChildStats(childId: number): Promise<Stats> {
   const res = await fetch(`/api/parent/children/${childId}/stats`);
   return res.json();
@@ -205,8 +227,11 @@ async function renderChildCard(child: Child): Promise<HTMLElement> {
       <span>Deze week: <strong>${formatDuration(stats.time.weekSeconds)}</strong></span>
       <span>Totaal: <strong>${formatDuration(stats.time.totalSeconds)}</strong></span>
     </div>
+    <h3>Sommen</h3>
     ${renderTableAccuracy(stats.perTable)}
     ${renderTrend(stats.trend)}
+    <h3>Typen</h3>
+    ${renderTypingLevels(stats.perTypingLevel)}
   `;
 
   const editToggle = card.querySelector(".child-edit-toggle")!;
@@ -237,10 +262,57 @@ async function loadDashboard() {
   }
 }
 
+function formatFeedbackDate(createdAt: string): string {
+  return new Date(createdAt + "Z").toLocaleString("nl-NL", { dateStyle: "medium", timeStyle: "short" });
+}
+
+async function loadFeedback() {
+  const res = await fetch("/api/parent/feedback");
+  const list = document.getElementById("feedback-list")!;
+  list.innerHTML = "";
+
+  if (!res.ok) return;
+
+  const items: { id: number; message: string; createdAt: string }[] = await res.json();
+  for (const item of items) {
+    const el = document.createElement("div");
+    el.className = "feedback-item";
+    el.innerHTML = `
+      <span class="feedback-date">${formatFeedbackDate(item.createdAt)}</span>
+      <span class="feedback-message"></span>
+    `;
+    el.querySelector(".feedback-message")!.textContent = item.message;
+    list.appendChild(el);
+  }
+}
+
+document.getElementById("feedback-form")!.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const textarea = document.getElementById("feedback-message") as HTMLTextAreaElement;
+  const errorEl = document.getElementById("feedback-error")!;
+
+  const res = await fetch("/api/parent/feedback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: textarea.value }),
+  });
+
+  if (!res.ok) {
+    errorEl.textContent = "Er ging iets mis bij het versturen.";
+    errorEl.hidden = false;
+    return;
+  }
+
+  errorEl.hidden = true;
+  textarea.value = "";
+  await loadFeedback();
+});
+
 async function init() {
   const meRes = await fetch("/api/parent/me");
   if (meRes.ok) {
     await loadDashboard();
+    await loadFeedback();
     showDashboard();
   } else {
     showLogin();
