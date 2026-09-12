@@ -51,6 +51,22 @@ test.describe.serial("challenge module", () => {
     await expect(widget).toBeVisible();
   });
 
+  test("tapping a challenge chip reveals what it requires and the reward, and tapping again collapses it", async ({ page }) => {
+    await loginAsChild(page, "Sam");
+
+    const chip = page.locator(".challenge-chip").first();
+    const detail = chip.locator(".challenge-chip-detail");
+    await expect(detail).toBeHidden();
+
+    await chip.click();
+    await expect(detail).toBeVisible();
+    await expect(detail).toContainText(/tafel 7/i);
+    await expect(detail).toContainText("Koekje"); // the sticker chosen in the first test
+
+    await chip.click();
+    await expect(detail).toBeHidden();
+  });
+
   test("resetting a table_confidence challenge re-completes immediately, since confidence isn't time-windowed", async ({ page }) => {
     // Documents real (if slightly surprising) current behavior: unlike
     // time_played, table_confidence progress is an all-time rolling

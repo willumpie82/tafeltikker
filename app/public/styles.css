@@ -637,6 +637,7 @@ h1 {
 
 .challenge-widget {
   display: flex;
+  align-items: flex-start;
   gap: 10px;
   overflow-x: auto;
   margin: 0 0 16px;
@@ -659,6 +660,8 @@ h1 {
   border-radius: 12px;
   padding: 8px 10px;
   min-width: 76px;
+  max-width: 200px;
+  cursor: pointer;
 }
 
 .challenge-chip.done {
@@ -696,4 +699,26 @@ h1 {
   font-size: 0.65rem;
   color: #888;
   white-space: nowrap;
+}
+
+.challenge-chip-detail {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border, #e0e0e0);
+  font-size: 0.7rem;
+  color: #555;
+  white-space: normal;
+  text-align: left;
+}
+
+.challenge-chip-detail[hidden] {
+  display: none;
+}
+
+.challenge-chip-detail p {
+  margin: 0 0 4px;
+}
+
+.challenge-chip-reward {
+  font-weight: bold;
 }
