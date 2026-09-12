@@ -24,7 +24,7 @@ typing:
 - [x] add onscreen keyboard (QWERTY) when it takes long, start slowly highlighting the required letter — tappable QWERTY keyboard added (works as a real input method, not just a display); after 3s of no keystroke the next required key highlights, resets on every keystroke
 - [x] when focus of the input field is lost, cannot type = confusing — the input now refocuses itself automatically if it loses focus mid-exercise, and tapping the prompt text also refocuses it
 - [x] when typo on last letter one cannot backspace, so when correct, continue, when incorrect wait for return — fixed: it only auto-continues on an exact match now; a typo (anywhere, including the last character) stays editable (Backspace works) until Enter is pressed
-- [n] on other training tools they start with a 'warming-up', only one row of the keyboard for a few excersise, than two, than full
+- [x] on other training tools they start with a 'warming-up', only one row of the keyboard for a few excersise, than two, than full — built into the existing "Letters" level rather than a separate mode: first third of exercises draw only from the home row (a s d f g h j k l), middle third adds the top row, final third is the full alphabet (Woorden/Zinnetjes unchanged)
 
 calc:
 - [x] add keyboard entry + enter to confirm — digits/Backspace/Enter now work on Gemiddeld/Moeilijk (not applicable to Makkelijk's multiple choice)
