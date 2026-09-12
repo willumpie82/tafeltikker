@@ -57,6 +57,15 @@ label {
   color: #555;
 }
 
+/* A label wrapping a checkbox wants the box next to its text, not stacked
+   above it — the default column direction above is meant for a text label
+   sitting above its own input. */
+.checkbox-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
 input,
 select {
   font-size: 1rem;

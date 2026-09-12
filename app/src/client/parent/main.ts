@@ -381,8 +381,8 @@ function renderChallenges(childId: number, challenges: Challenge[]): string {
       </label>
 
       <div class="challenge-fields-time">
-        <label><input type="checkbox" class="challenge-counts-math" checked /> Sommen</label>
-        <label><input type="checkbox" class="challenge-counts-typing" /> Typen</label>
+        <label class="checkbox-label"><input type="checkbox" class="challenge-counts-math" checked /> Sommen</label>
+        <label class="checkbox-label"><input type="checkbox" class="challenge-counts-typing" /> Typen</label>
         <label>Aantal minuten <input type="number" class="challenge-target-minutes" min="1" value="30" /></label>
       </div>
 
