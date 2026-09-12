@@ -31,7 +31,7 @@ export default async function childRoutes(app: FastifyInstance) {
     }
 
     request.childSession.set("childId", child.id);
-    return { id: child.id, name: child.name, avatarId: child.avatarId };
+    return { id: child.id, name: child.name, avatarId: child.avatarId, aviLevel: child.aviLevel };
   });
 
   app.get("/api/child/me", async (request, reply) => {
@@ -41,7 +41,7 @@ export default async function childRoutes(app: FastifyInstance) {
     }
 
     const [child] = await db
-      .select({ id: children.id, name: children.name, avatarId: children.avatarId })
+      .select({ id: children.id, name: children.name, avatarId: children.avatarId, aviLevel: children.aviLevel })
       .from(children)
       .where(eq(children.id, childId));
 

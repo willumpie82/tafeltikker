@@ -16,6 +16,11 @@ export const children = sqliteTable("children", {
   name: text("name").notNull(),
   avatarId: text("avatar_id").notNull(),
   pinHash: text("pin_hash").notNull(),
+  // Which AVI (Dutch reading-level) word/sentence tier the typing module
+  // draws from — not validated against a fixed list server-side, same as
+  // avatarId isn't; the client-side WORD_LEVELS list in typing-content.ts
+  // is authoritative. A parent assigns this, not the child.
+  aviLevel: text("avi_level").notNull().default("avi_m4_e4"),
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
 

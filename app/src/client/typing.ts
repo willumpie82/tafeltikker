@@ -168,12 +168,18 @@ export function startTypingSettings() {
 }
 
 async function startSession() {
+  // Fetched fresh per session (not cached) so a level a parent just changed
+  // takes effect immediately, without needing the child to log out first.
+  const meRes = await guardedFetch("/api/child/me");
+  if (!meRes) return;
+  const me = await meRes.json();
+
   const res = await guardedFetch("/api/child/typing/sessions", { method: "POST" });
   if (!res) return;
   const data = await res.json();
   sessionId = data.sessionId;
 
-  queue = promptsFor(selectedLevel, selectedCount);
+  queue = promptsFor(selectedLevel, selectedCount, me.aviLevel);
   currentIndex = 0;
   results.length = 0;
 

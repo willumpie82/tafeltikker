@@ -55,7 +55,7 @@ export default async function parentRoutes(app: FastifyInstance) {
     if (!parentId) return reply.code(401).send({ error: "not_authenticated" });
 
     const rows = await db
-      .select({ id: children.id, name: children.name, avatarId: children.avatarId })
+      .select({ id: children.id, name: children.name, avatarId: children.avatarId, aviLevel: children.aviLevel })
       .from(children)
       .innerJoin(parentChild, eq(parentChild.childId, children.id))
       .where(eq(parentChild.parentId, parentId));
@@ -82,7 +82,7 @@ export default async function parentRoutes(app: FastifyInstance) {
     return child;
   });
 
-  app.patch<{ Params: { id: string }; Body: { name?: string; avatarId?: string; pin?: string } }>(
+  app.patch<{ Params: { id: string }; Body: { name?: string; avatarId?: string; pin?: string; aviLevel?: string } }>(
     "/api/parent/children/:id",
     async (request, reply) => {
       const parentId = requireParentId(request);

@@ -1,8 +1,8 @@
 import { emojiFor, buildAvatarPicker } from "../avatars.js";
-import { QWERTY_ROWS } from "../typing-content.js";
+import { QWERTY_ROWS, WORD_LEVELS } from "../typing-content.js";
 import { STICKERS, stickerFor } from "../stickers.js";
 
-type Child = { id: number; name: string; avatarId: string };
+type Child = { id: number; name: string; avatarId: string; aviLevel: string };
 type Stats = {
   time: { totalSeconds: number; todaySeconds: number; weekSeconds: number };
   perTable: { tableNumber: number; total: number; correct: number }[];
@@ -408,6 +408,11 @@ function buildEditForm(child: Child, onSaved: () => void): HTMLFormElement {
   form.innerHTML = `
     <label>Naam <input type="text" name="name" value="${child.name}" required /></label>
     <label>Avatar <div class="avatar-picker" data-avatar-picker></div></label>
+    <label>Leesniveau (Woorden/Zinnetjes)
+      <select name="aviLevel">
+        ${WORD_LEVELS.map((w) => `<option value="${w.id}" ${w.id === child.aviLevel ? "selected" : ""}>${w.label}</option>`).join("")}
+      </select>
+    </label>
     <label>Nieuwe geheime code <input type="text" name="pin" inputmode="numeric" pattern="\\d{4}" maxlength="4" />
       <small>Laat leeg om de code niet te wijzigen.</small>
     </label>
@@ -425,6 +430,7 @@ function buildEditForm(child: Child, onSaved: () => void): HTMLFormElement {
     const body: Record<string, string> = {
       name: String(data.get("name") ?? ""),
       avatarId: selectedAvatarId,
+      aviLevel: String(data.get("aviLevel") ?? ""),
     };
     const pin = String(data.get("pin") ?? "");
     if (pin) body.pin = pin;

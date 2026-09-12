@@ -1,0 +1,1 @@
+ALTER TABLE `children` ADD `avi_level` text DEFAULT 'avi_m4_e4' NOT NULL;
