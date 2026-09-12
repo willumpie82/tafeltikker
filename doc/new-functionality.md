@@ -1,16 +1,16 @@
 general:
 - [x] add a back & log-out button (exists on the home screen and inside the settings screens, but not once an exercise is running — a child can't get back to home or log out mid-session yet) — back arrows on both exercise views now end the session and return home, where logout is one tap away
-- [ ] design registration flow
-- [n] invite new parent using invite url+key
-- [n] system-admin can manage 'parents', reset password
-- [n] admin can promote 'parent' to user-admin
-- [n] userlevels: child, parent, user-admin (manage parents+childs, cannot see progress), system-admin same as user-admin + promote roles + create new users
+- [x] design registration flow — invite-token-based registration: an admin generates a single-use, expiring link, the new parent opens /register.html?token=..., which validates the token before showing the signup form
+- [x] invite new parent using invite url+key — /api/admin/invites (generate/list) + public /api/register/:token + /api/register; Invites tab in admin.html
+- [x] system-admin can manage 'parents', reset password — Parents tab in admin.html, backed by /api/admin/parents
+- [x] admin can promote 'parent' to user-admin — role dropdown in the Parents tab, system_admin only, capped at user_admin (system_admin itself only ever set via seed/DB)
+- [x] userlevels: child, parent, user-admin (manage parents+childs, cannot see progress), system-admin same as user-admin + promote roles + create new users — parents.role column (parent/user_admin/system_admin), requireAdmin guard on all /api/admin/** routes, no stats exposed to admins by design
 - [x] the screen is now highly optimized for mobile, make it more adaptive, sometimes with 'sommen' when the hint is displayed, parts drop of the screen. on widescreen show the hint left of the test — root cause was `align-items: center` on `<body>` silently clipping the top of overflowing content with no way to scroll to it; switched to `align-items: safe center`. On screens ≥900px the math exercise now shows the hint panel in a column to the left of the question/pad instead of stacked above it.
 - [x] on login screen add remark - 'tafeltikken beta. + version e.g. v0.1 — added "Tafeltikker · beta v0.1" under the avatar grid and under the parent login form
 - [planned] commit changes and deploy on proxmox LXC
 - [n] make sure passwords are not passed as plain text (noticed a curl cmd with plain password)
-- [n] show invite option in 'ouder' tab, create field to reveal invite url, keep in mind that this wil (later-on) be tafeltikker.oldemans.nl (or other URL configured in env)
-- [n] (user)-admin(s) should be able to add children and assign to parent, user-admin
+- [x] show invite option in 'ouder' tab, create field to reveal invite url, keep in mind that this wil (later-on) be tafeltikker.oldemans.nl (or other URL configured in env) — added a "+ Ouder uitnodigen" quick action right in the Ouders tab (same generation logic as the full Invites tab); invite URLs are now built server-side using `PUBLIC_BASE_URL` (new env var) when set, falling back to the request's own host — so it'll correctly produce tafeltikker.oldemans.nl links once that's configured, instead of embedding whatever host the admin happened to load the page from
+- [x] (user)-admin(s) should be able to add children and assign to parent, user-admin — "+ Kind toevoegen" in the admin Kinderen tab, with a checkbox list of parents to link the new child to (POST /api/admin/children)
 - [x] kind-avatar in ouderportal is not working, (can't add due to missing avatar) — real root cause found via live debugging with the user (manual console DOM edits persisted fine; the same insertion done inside the button's click handler consistently ended up empty with no console error): dynamically-built DOM content inserted synchronously *inside a click event handler* was being silently dropped, while pre-existing static fields on the same form (name/PIN inputs) were unaffected. Fixed by (1) building the "add child" avatar picker once up front when the page loads instead of inside the button's click handler, and (2) deferring `buildAvatarPicker`'s DOM work via `setTimeout(fn, 0)` internally so it always runs outside any event handler's call stack — covers the on-demand edit-child form too. Also replaced the native `<select>` with plain clickable emoji buttons (same pattern the kid app's own avatar grid uses). Verified end-to-end with an automated browser test covering both the add and edit flows.
 - [n] add status & response to feedback (accepted, need info, planned, fixed, declined)
 

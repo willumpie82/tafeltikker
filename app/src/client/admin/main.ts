@@ -7,6 +7,7 @@ type FeedbackRow = { id: number; message: string; createdAt: string; parentUsern
 type InviteRow = {
   id: number;
   token: string;
+  url: string;
   expiresAt: string;
   usedAt: string | null;
   usedByUsername: string | null;
@@ -121,6 +122,76 @@ function renderParentRow(parent: ParentRow): HTMLElement {
   return row;
 }
 
+const adminAddChildButton = document.getElementById("admin-add-child-button")!;
+const adminAddChildForm = document.getElementById("admin-add-child-form") as HTMLFormElement;
+const adminNewChildAvatarPicker = document.getElementById("admin-new-child-avatar-picker")!;
+const adminNewChildParentsEl = document.getElementById("admin-new-child-parents")!;
+let adminNewChildAvatarId = "";
+
+// Built once up front rather than reactively on click — see buildAvatarPicker's
+// own comment for why: DOM insertion inside a click handler was silently
+// dropped for a real user, while the identical work done ahead of time or
+// deferred via setTimeout was not.
+buildAvatarPicker(adminNewChildAvatarPicker, undefined, (id) => (adminNewChildAvatarId = id));
+
+async function loadParentCheckboxes() {
+  const res = await fetch("/api/admin/parents");
+  if (!res.ok) return;
+  const parentRows: ParentRow[] = await res.json();
+
+  setTimeout(() => {
+    adminNewChildParentsEl.innerHTML = "";
+    for (const parent of parentRows) {
+      const label = document.createElement("label");
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.value = String(parent.id);
+      label.appendChild(checkbox);
+      label.appendChild(document.createTextNode(parent.username));
+      adminNewChildParentsEl.appendChild(label);
+    }
+  }, 0);
+}
+
+adminAddChildButton.addEventListener("click", () => {
+  adminAddChildForm.hidden = false;
+  adminAddChildButton.hidden = true;
+});
+
+document.getElementById("admin-cancel-add-child")!.addEventListener("click", () => {
+  adminAddChildForm.hidden = true;
+  adminAddChildButton.hidden = false;
+  adminAddChildForm.reset();
+});
+
+adminAddChildForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const name = (document.getElementById("admin-new-child-name") as HTMLInputElement).value;
+  const pin = (document.getElementById("admin-new-child-pin") as HTMLInputElement).value;
+  const parentIds = [...adminNewChildParentsEl.querySelectorAll<HTMLInputElement>("input[type=checkbox]:checked")].map((el) =>
+    Number(el.value),
+  );
+  const errorEl = document.getElementById("admin-add-child-error")!;
+
+  const res = await fetch("/api/admin/children", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, avatarId: adminNewChildAvatarId, pin, parentIds }),
+  });
+
+  if (!res.ok) {
+    errorEl.textContent = "Vul alle velden goed in en kies minstens één ouder.";
+    errorEl.hidden = false;
+    return;
+  }
+
+  errorEl.hidden = true;
+  adminAddChildForm.reset();
+  adminAddChildForm.hidden = true;
+  adminAddChildButton.hidden = false;
+  await loadChildren();
+});
+
 async function loadChildren() {
   const res = await fetch("/api/admin/children");
   const list = document.getElementById("admin-children-list")!;
@@ -223,19 +294,23 @@ async function loadFeedback() {
   }
 }
 
-document.getElementById("invite-form")!.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const days = Number((document.getElementById("invite-days") as HTMLInputElement).value) || 7;
-
+async function generateInvite(days: number): Promise<string | null> {
   const res = await fetch("/api/admin/invites", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ expiresInDays: days }),
   });
-  if (!res.ok) return;
+  if (!res.ok) return null;
+  const { url } = await res.json();
+  return url;
+}
 
-  const { token } = await res.json();
-  const url = `${window.location.origin}/register.html?token=${token}`;
+document.getElementById("invite-form")!.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const days = Number((document.getElementById("invite-days") as HTMLInputElement).value) || 7;
+
+  const url = await generateInvite(days);
+  if (!url) return;
 
   const resultEl = document.getElementById("invite-result")!;
   const urlInput = document.getElementById("invite-url") as HTMLInputElement;
@@ -243,6 +318,16 @@ document.getElementById("invite-form")!.addEventListener("submit", async (event)
   resultEl.hidden = false;
 
   await loadInvites();
+});
+
+document.getElementById("quick-invite-button")!.addEventListener("click", async () => {
+  const url = await generateInvite(7);
+  if (!url) return;
+
+  const resultEl = document.getElementById("quick-invite-result")!;
+  const urlInput = document.getElementById("quick-invite-url") as HTMLInputElement;
+  urlInput.value = url;
+  resultEl.hidden = false;
 });
 
 async function loadInvites() {
@@ -266,6 +351,7 @@ async function loadInvites() {
         Verloopt: ${new Date(invite.expiresAt).toLocaleDateString("nl-NL")}
         ${invite.usedByUsername ? ` · Gebruikt door ${invite.usedByUsername}` : ""}
       </div>
+      ${invite.status === "pending" ? `<input type="text" readonly value="${invite.url}" class="invite-row-url" />` : ""}
     `;
     list.appendChild(row);
   }
@@ -287,6 +373,7 @@ async function init() {
   myRole = me.role;
   appEl.hidden = false;
   await loadParents();
+  await loadParentCheckboxes();
 }
 
 init();

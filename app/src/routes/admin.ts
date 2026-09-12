@@ -3,12 +3,22 @@ import type { FastifyInstance } from "fastify";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { parents, children, parentChild, feedback, parentInvites } from "../db/schema.js";
-import { hashSecret } from "../auth/password.js";
+import { hashSecret, isValidPin } from "../auth/password.js";
 import { requireAdmin } from "../auth/require.js";
 import { applyChildUpdate, InvalidPinError, NothingToUpdateError } from "./childUpdates.js";
 
 const PROMOTABLE_ROLES = new Set(["parent", "user_admin"]);
 const DEFAULT_INVITE_EXPIRY_DAYS = 7;
+
+/**
+ * PUBLIC_BASE_URL should be set once this instance is reachable at a real
+ * domain (e.g. https://tafeltikker.oldemans.nl) behind the reverse proxy —
+ * otherwise invite links would embed whatever host/port the admin happened
+ * to load admin.html from (fine for LAN-only use, wrong once exposed).
+ */
+function baseUrl(request: { protocol: string; headers: { host?: string } }): string {
+  return process.env.PUBLIC_BASE_URL ?? `${request.protocol}://${request.headers.host}`;
+}
 
 export default async function adminRoutes(app: FastifyInstance) {
   app.get("/api/admin/parents", async (request, reply) => {
@@ -87,6 +97,28 @@ export default async function adminRoutes(app: FastifyInstance) {
     return [...byChild.values()];
   });
 
+  app.post<{ Body: { name: string; avatarId: string; pin: string; parentIds: number[] } }>(
+    "/api/admin/children",
+    async (request, reply) => {
+      const admin = await requireAdmin(request);
+      if (!admin) return reply.code(403).send({ error: "forbidden" });
+
+      const { name, avatarId, pin, parentIds } = request.body ?? {};
+      if (!name?.trim() || !avatarId || !isValidPin(String(pin ?? "")) || !Array.isArray(parentIds) || parentIds.length === 0) {
+        return reply.code(400).send({ error: "invalid_request" });
+      }
+
+      const [child] = await db
+        .insert(children)
+        .values({ name: name.trim(), avatarId, pinHash: await hashSecret(pin) })
+        .returning({ id: children.id, name: children.name, avatarId: children.avatarId });
+
+      await db.insert(parentChild).values(parentIds.map((parentId) => ({ parentId, childId: child.id })));
+
+      return child;
+    },
+  );
+
   app.patch<{ Params: { id: string }; Body: { name?: string; avatarId?: string; pin?: string } }>(
     "/api/admin/children/:id",
     async (request, reply) => {
@@ -137,7 +169,7 @@ export default async function adminRoutes(app: FastifyInstance) {
       .values({ token, createdBy: admin.parentId, expiresAt })
       .returning({ token: parentInvites.token, expiresAt: parentInvites.expiresAt });
 
-    return invite;
+    return { ...invite, url: `${baseUrl(request)}/register.html?token=${invite.token}` };
   });
 
   app.get("/api/admin/invites", async (request, reply) => {
@@ -160,6 +192,7 @@ export default async function adminRoutes(app: FastifyInstance) {
     const now = Date.now();
     return rows.map((row) => ({
       ...row,
+      url: `${baseUrl(request)}/register.html?token=${row.token}`,
       status: row.usedAt ? "used" : new Date(row.expiresAt).getTime() < now ? "expired" : "pending",
     }));
   });

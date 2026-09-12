@@ -121,6 +121,27 @@
   font-size: 0.85rem;
 }
 
+.parent-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.parent-checkboxes label {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.invite-row-url {
+  width: 100%;
+  margin-top: 6px;
+  font-family: monospace;
+  font-size: 0.8rem;
+}
+
 .status-badge {
   font-size: 0.75rem;
   padding: 2px 8px;

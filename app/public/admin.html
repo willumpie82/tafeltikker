@@ -25,10 +25,42 @@
       </nav>
 
       <section id="admin-tab-parents" class="admin-tab">
+        <button type="button" id="quick-invite-button">+ Ouder uitnodigen</button>
+        <div id="quick-invite-result" class="invite-result" hidden>
+          <p>Deel deze link met de nieuwe ouder:</p>
+          <input type="text" id="quick-invite-url" readonly />
+        </div>
         <div id="parents-list" class="admin-list"></div>
       </section>
 
       <section id="admin-tab-children" class="admin-tab" hidden>
+        <button type="button" id="admin-add-child-button">+ Kind toevoegen</button>
+
+        <form id="admin-add-child-form" class="child-form" hidden>
+          <h2>Nieuw kind</h2>
+          <label>
+            Naam
+            <input type="text" id="admin-new-child-name" required />
+          </label>
+          <label>
+            Avatar
+            <div id="admin-new-child-avatar-picker" class="avatar-picker"></div>
+          </label>
+          <label>
+            Geheime code (4 cijfers)
+            <input type="text" id="admin-new-child-pin" inputmode="numeric" pattern="\d{4}" maxlength="4" required />
+          </label>
+          <label>
+            Ouder(s)
+            <div id="admin-new-child-parents" class="parent-checkboxes"></div>
+          </label>
+          <div class="form-actions">
+            <button type="submit">Opslaan</button>
+            <button type="button" id="admin-cancel-add-child">Annuleren</button>
+          </div>
+          <p id="admin-add-child-error" class="error-text" hidden></p>
+        </form>
+
         <div id="admin-children-list" class="admin-list"></div>
       </section>
 
