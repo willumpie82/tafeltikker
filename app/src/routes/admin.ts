@@ -1,12 +1,14 @@
+import { randomBytes } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { parents, children, parentChild, feedback } from "../db/schema.js";
+import { parents, children, parentChild, feedback, parentInvites } from "../db/schema.js";
 import { hashSecret } from "../auth/password.js";
 import { requireAdmin } from "../auth/require.js";
 import { applyChildUpdate, InvalidPinError, NothingToUpdateError } from "./childUpdates.js";
 
 const PROMOTABLE_ROLES = new Set(["parent", "user_admin"]);
+const DEFAULT_INVITE_EXPIRY_DAYS = 7;
 
 export default async function adminRoutes(app: FastifyInstance) {
   app.get("/api/admin/parents", async (request, reply) => {
@@ -118,5 +120,47 @@ export default async function adminRoutes(app: FastifyInstance) {
       .from(feedback)
       .innerJoin(parents, eq(parents.id, feedback.parentId))
       .orderBy(desc(feedback.createdAt));
+  });
+
+  app.post<{ Body: { expiresInDays?: number } }>("/api/admin/invites", async (request, reply) => {
+    const admin = await requireAdmin(request);
+    if (!admin) return reply.code(403).send({ error: "forbidden" });
+
+    const days = request.body?.expiresInDays;
+    const expiryDays = Number.isFinite(days) && days! > 0 ? days! : DEFAULT_INVITE_EXPIRY_DAYS;
+
+    const token = randomBytes(24).toString("base64url");
+    const expiresAt = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString();
+
+    const [invite] = await db
+      .insert(parentInvites)
+      .values({ token, createdBy: admin.parentId, expiresAt })
+      .returning({ token: parentInvites.token, expiresAt: parentInvites.expiresAt });
+
+    return invite;
+  });
+
+  app.get("/api/admin/invites", async (request, reply) => {
+    const admin = await requireAdmin(request);
+    if (!admin) return reply.code(403).send({ error: "forbidden" });
+
+    const rows = await db
+      .select({
+        id: parentInvites.id,
+        token: parentInvites.token,
+        expiresAt: parentInvites.expiresAt,
+        usedAt: parentInvites.usedAt,
+        usedByUsername: parents.username,
+        createdAt: parentInvites.createdAt,
+      })
+      .from(parentInvites)
+      .leftJoin(parents, eq(parents.id, parentInvites.usedBy))
+      .orderBy(desc(parentInvites.createdAt));
+
+    const now = Date.now();
+    return rows.map((row) => ({
+      ...row,
+      status: row.usedAt ? "used" : new Date(row.expiresAt).getTime() < now ? "expired" : "pending",
+    }));
   });
 }
