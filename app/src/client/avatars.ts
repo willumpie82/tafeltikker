@@ -12,33 +12,40 @@ export function emojiFor(avatarId: string): string {
 }
 
 /**
- * Renders a row of clickable avatar buttons into `container` and returns the
- * currently selected avatarId. Deliberately not a native <select> — some
- * password managers/extensions silently strip dynamically-added <option>s
- * from selects, which broke this form for real users.
+ * Renders a row of clickable avatar buttons into `container`.
+ *
+ * The actual DOM insertion is deferred to a macrotask on purpose: dynamic
+ * content built synchronously inside a click event handler was observed to
+ * be silently dropped in a real user's browser (confirmed via manual testing
+ * — the identical insertion done directly from the console, outside any
+ * event handler, persisted fine; done inside a button's click handler, it
+ * consistently ended up empty with no console error). Deferring escapes the
+ * click handler's call stack, which sidesteps whatever is doing that.
  */
 export function buildAvatarPicker(
   container: HTMLElement,
   selected: string | undefined,
   onSelect: (avatarId: string) => void,
 ): void {
-  container.innerHTML = "";
-  const avatarIds = Object.keys(AVATAR_EMOJI);
-  const initial = selected && avatarIds.includes(selected) ? selected : avatarIds[0];
+  setTimeout(() => {
+    container.innerHTML = "";
+    const avatarIds = Object.keys(AVATAR_EMOJI);
+    const initial = selected && avatarIds.includes(selected) ? selected : avatarIds[0];
 
-  for (const avatarId of avatarIds) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "avatar-picker-button" + (avatarId === initial ? " selected" : "");
-    button.textContent = AVATAR_EMOJI[avatarId];
-    button.title = avatarId;
-    button.addEventListener("click", () => {
-      container.querySelectorAll(".avatar-picker-button").forEach((b) => b.classList.remove("selected"));
-      button.classList.add("selected");
-      onSelect(avatarId);
-    });
-    container.appendChild(button);
-  }
+    for (const avatarId of avatarIds) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "avatar-picker-button" + (avatarId === initial ? " selected" : "");
+      button.textContent = AVATAR_EMOJI[avatarId];
+      button.title = avatarId;
+      button.addEventListener("click", () => {
+        container.querySelectorAll(".avatar-picker-button").forEach((b) => b.classList.remove("selected"));
+        button.classList.add("selected");
+        onSelect(avatarId);
+      });
+      container.appendChild(button);
+    }
 
-  onSelect(initial);
+    onSelect(initial);
+  }, 0);
 }

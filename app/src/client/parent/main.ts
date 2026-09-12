@@ -74,8 +74,13 @@ const addChildForm = document.getElementById("add-child-form") as HTMLFormElemen
 const addChildAvatarPicker = document.getElementById("new-child-avatar-picker")!;
 let newChildAvatarId = "";
 
+// Built up front (not inside the button's click handler) — some browser
+// setups appear to silently drop DOM insertions made synchronously inside a
+// click handler specifically (confirmed the same insertion works fine done
+// directly, or done ahead of time).
+buildAvatarPicker(addChildAvatarPicker, undefined, (id) => (newChildAvatarId = id));
+
 addChildButton.addEventListener("click", () => {
-  buildAvatarPicker(addChildAvatarPicker, undefined, (id) => (newChildAvatarId = id));
   addChildForm.hidden = false;
   addChildButton.hidden = true;
 });
