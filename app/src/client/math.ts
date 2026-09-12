@@ -58,6 +58,10 @@ let hintUsedForCurrent = false;
 let triesUsed = 0;
 let correctCount = 0;
 let triesForCorrect: number[] = [];
+// Wrong submissions per fact (table x multiplier) across the whole session,
+// not just the current appearance — a fact that gets requeued after a wrong
+// guess and answered correctly later should still score below "in one go".
+let wrongAttemptsByFact = new Map<string, number>();
 let tryTimerInterval: number | undefined;
 let tryTimeRemaining = 0;
 let correctCombos = new Set<string>();
@@ -389,6 +393,7 @@ async function startSession() {
   targetCount = selectedMode === "time" ? Infinity : selectedCount;
   correctCount = 0;
   triesForCorrect = [];
+  wrongAttemptsByFact = new Map();
   correctCombos = new Set();
   isPaused = false;
   renderTableProgress();
@@ -495,14 +500,23 @@ async function finalizeAttempt(answerValue: number, hintUsed: boolean) {
   });
   const result = await res.json();
 
+  const key = comboKey(question.tableNumber, question.operandB);
+
   if (result.correct) {
     correctCount++;
-    // "easy" is always a single shot (try 1); medium/hard track their own tries.
-    triesForCorrect.push(selectedDifficulty === "easy" ? 1 : triesUsed);
-    correctCombos.add(comboKey(question.tableNumber, question.operandB));
+    // The weighted score is about the fact's difficulty across the whole
+    // session, not just this appearance — a wrong guess that gets requeued
+    // and answered correctly later still counts against it. Without this,
+    // "easy" (always one shot per appearance) could never register anything
+    // but a perfect try 1, no matter how many earlier wrong guesses on the
+    // same fact preceded it.
+    const priorWrong = wrongAttemptsByFact.get(key) ?? 0;
+    triesForCorrect.push(priorWrong + 1);
+    correctCombos.add(key);
     renderTableProgress();
   } else {
     // wrong answers don't count toward progress — try this same fact again later
+    wrongAttemptsByFact.set(key, (wrongAttemptsByFact.get(key) ?? 0) + 1);
     queue.push({ ...question });
   }
 
@@ -553,6 +567,8 @@ async function resolveTry(answerValue: number) {
   }
 
   // wrong, tries remain
+  const retryKey = comboKey(question.tableNumber, question.operandB);
+  wrongAttemptsByFact.set(retryKey, (wrongAttemptsByFact.get(retryKey) ?? 0) + 1);
   currentAnswer = "";
   renderAnswer();
   feedbackEl.hidden = false;

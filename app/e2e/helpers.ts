@@ -43,6 +43,24 @@ export async function answerMathQuestionCorrectly(page: Page) {
   throw new Error(`Correct answer ${answer} not found among options for "${qText}"`);
 }
 
+/** Answers the current Makkelijk (multiple choice) math question with a deliberately wrong option. */
+export async function answerMathQuestionIncorrectly(page: Page) {
+  await page.waitForSelector("#math-options button", { timeout: 5000 });
+  const qText = await page.$eval("#math-question", (el) => el.textContent ?? "");
+  const match = qText.match(/(\d+)\s*×\s*(\d+)/);
+  if (!match) throw new Error(`Could not parse math question: "${qText}"`);
+  const answer = String(Number(match[1]) * Number(match[2]));
+
+  const options = await page.$$("#math-options button");
+  for (const option of options) {
+    if ((await option.textContent())?.trim() !== answer) {
+      await option.click();
+      return;
+    }
+  }
+  throw new Error(`No wrong option found among options for "${qText}"`);
+}
+
 /** Plays a full Makkelijk math session on the given table(s), answering every question correctly. */
 export async function playMathSessionCorrectly(page: Page, tables: number[], count: 5 | 10 | 20) {
   await page.click("#start-math-button");

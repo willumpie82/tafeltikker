@@ -543,6 +543,7 @@ button#logout-button {
   border: 1px solid var(--border);
   border-radius: 6px;
   background: white;
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -615,6 +616,7 @@ button#logout-button {
   border: 2px solid var(--border);
   border-radius: 8px;
   background: white;
+  color: var(--ink);
   cursor: pointer;
 }
 
