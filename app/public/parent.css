@@ -316,6 +316,56 @@ button#logout-button {
 
 .feedback-item .feedback-message {
   white-space: pre-wrap;
+  display: block;
+  margin-top: 4px;
+}
+
+.feedback-item .feedback-response {
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 0.9rem;
+  color: #444;
+  white-space: pre-wrap;
+}
+
+.status-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #eee;
+  color: #555;
+}
+
+.status-badge.new {
+  background: #e7f5ff;
+  color: #1864ab;
+}
+
+.status-badge.accepted {
+  background: #d0ebff;
+  color: #1864ab;
+}
+
+.status-badge.need_info {
+  background: #fff3bf;
+  color: #8c6d1f;
+}
+
+.status-badge.planned {
+  background: #e5dbff;
+  color: #5f3dc4;
+}
+
+.status-badge.fixed {
+  background: #d3f9d8;
+  color: #2b8a3e;
+}
+
+.status-badge.declined {
+  background: #ffe3e3;
+  color: #c92a2a;
 }
 
 .version-tag {

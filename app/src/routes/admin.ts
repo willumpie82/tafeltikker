@@ -9,6 +9,7 @@ import { applyChildUpdate, InvalidPinError, NothingToUpdateError } from "./child
 
 const PROMOTABLE_ROLES = new Set(["parent", "user_admin"]);
 const DEFAULT_INVITE_EXPIRY_DAYS = 7;
+const FEEDBACK_STATUSES = new Set(["new", "accepted", "need_info", "planned", "fixed", "declined"]);
 
 /**
  * PUBLIC_BASE_URL should be set once this instance is reachable at a real
@@ -146,6 +147,8 @@ export default async function adminRoutes(app: FastifyInstance) {
       .select({
         id: feedback.id,
         message: feedback.message,
+        status: feedback.status,
+        response: feedback.response,
         createdAt: feedback.createdAt,
         parentUsername: parents.username,
       })
@@ -153,6 +156,36 @@ export default async function adminRoutes(app: FastifyInstance) {
       .innerJoin(parents, eq(parents.id, feedback.parentId))
       .orderBy(desc(feedback.createdAt));
   });
+
+  app.patch<{ Params: { id: string }; Body: { status?: string; response?: string } }>(
+    "/api/admin/feedback/:id",
+    async (request, reply) => {
+      const admin = await requireAdmin(request);
+      if (!admin) return reply.code(403).send({ error: "forbidden" });
+
+      const { status, response } = request.body ?? {};
+      if (status !== undefined && !FEEDBACK_STATUSES.has(status)) {
+        return reply.code(400).send({ error: "invalid_status" });
+      }
+
+      const updates: Partial<typeof feedback.$inferInsert> = {};
+      if (status !== undefined) updates.status = status as (typeof feedback.$inferInsert)["status"];
+      if (response !== undefined) updates.response = response.trim() || null;
+
+      if (Object.keys(updates).length === 0) {
+        return reply.code(400).send({ error: "nothing_to_update" });
+      }
+
+      const [updated] = await db
+        .update(feedback)
+        .set(updates)
+        .where(eq(feedback.id, Number(request.params.id)))
+        .returning({ id: feedback.id, status: feedback.status, response: feedback.response });
+
+      if (!updated) return reply.code(404).send({ error: "feedback_not_found" });
+      return updated;
+    },
+  );
 
   app.post<{ Body: { expiresInDays?: number } }>("/api/admin/invites", async (request, reply) => {
     const admin = await requireAdmin(request);

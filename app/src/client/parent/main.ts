@@ -14,6 +14,15 @@ const TYPING_LEVEL_LABELS: Record<string, string> = {
   sentences: "Zinnetjes",
 };
 
+const FEEDBACK_STATUS_LABELS: Record<string, string> = {
+  new: "Nieuw",
+  accepted: "Opgepakt",
+  need_info: "Meer info nodig",
+  planned: "Ingepland",
+  fixed: "Opgelost",
+  declined: "Afgewezen",
+};
+
 const loginView = document.getElementById("parent-view-login")!;
 const dashboardView = document.getElementById("parent-view-dashboard")!;
 
@@ -276,15 +285,18 @@ async function loadFeedback() {
 
   if (!res.ok) return;
 
-  const items: { id: number; message: string; createdAt: string }[] = await res.json();
+  const items: { id: number; message: string; status: string; response: string | null; createdAt: string }[] = await res.json();
   for (const item of items) {
     const el = document.createElement("div");
     el.className = "feedback-item";
     el.innerHTML = `
       <span class="feedback-date">${formatFeedbackDate(item.createdAt)}</span>
+      <span class="status-badge ${item.status}">${FEEDBACK_STATUS_LABELS[item.status] ?? item.status}</span>
       <span class="feedback-message"></span>
+      ${item.response ? `<p class="feedback-response"></p>` : ""}
     `;
     el.querySelector(".feedback-message")!.textContent = item.message;
+    if (item.response) el.querySelector(".feedback-response")!.textContent = `Reactie: ${item.response}`;
     list.appendChild(el);
   }
 }

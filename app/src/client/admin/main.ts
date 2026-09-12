@@ -3,7 +3,15 @@ import { emojiFor, buildAvatarPicker } from "../avatars.js";
 type Role = "parent" | "user_admin" | "system_admin";
 type ParentRow = { id: number; username: string; role: Role; createdAt: string };
 type ChildRow = { id: number; name: string; avatarId: string; parentUsernames: string[] };
-type FeedbackRow = { id: number; message: string; createdAt: string; parentUsername: string };
+type FeedbackStatus = "new" | "accepted" | "need_info" | "planned" | "fixed" | "declined";
+type FeedbackRow = {
+  id: number;
+  message: string;
+  status: FeedbackStatus;
+  response: string | null;
+  createdAt: string;
+  parentUsername: string;
+};
 type InviteRow = {
   id: number;
   token: string;
@@ -271,6 +279,15 @@ function renderChildRow(child: ChildRow): HTMLElement {
   return row;
 }
 
+const FEEDBACK_STATUS_LABELS: Record<FeedbackStatus, string> = {
+  new: "Nieuw",
+  accepted: "Opgepakt",
+  need_info: "Meer info nodig",
+  planned: "Ingepland",
+  fixed: "Opgelost",
+  declined: "Afgewezen",
+};
+
 async function loadFeedback() {
   const res = await fetch("/api/admin/feedback");
   const list = document.getElementById("admin-feedback-list")!;
@@ -285,11 +302,43 @@ async function loadFeedback() {
   for (const row of rows) {
     const el = document.createElement("div");
     el.className = "feedback-item";
+    // Options are static, baked directly into this one innerHTML assignment
+    // (not appended one-by-one afterward) — the safe pattern per the avatar
+    // picker fix, which was specifically about elements appended in a loop
+    // from inside a click handler.
     el.innerHTML = `
       <span class="feedback-date">${row.parentUsername} · ${new Date(row.createdAt + "Z").toLocaleString("nl-NL", { dateStyle: "medium", timeStyle: "short" })}</span>
+      <span class="status-badge ${row.status}">${FEEDBACK_STATUS_LABELS[row.status]}</span>
       <span class="feedback-message"></span>
+      <div class="feedback-admin-controls">
+        <select class="feedback-status-select">
+          <option value="new">Nieuw</option>
+          <option value="accepted">Opgepakt</option>
+          <option value="need_info">Meer info nodig</option>
+          <option value="planned">Ingepland</option>
+          <option value="fixed">Opgelost</option>
+          <option value="declined">Afgewezen</option>
+        </select>
+        <input type="text" class="feedback-response-input" placeholder="Reactie (optioneel)" />
+        <button type="button" class="feedback-save-button">Opslaan</button>
+      </div>
     `;
     el.querySelector(".feedback-message")!.textContent = row.message;
+
+    const statusSelect = el.querySelector(".feedback-status-select") as HTMLSelectElement;
+    statusSelect.value = row.status;
+    const responseInput = el.querySelector(".feedback-response-input") as HTMLInputElement;
+    responseInput.value = row.response ?? "";
+
+    el.querySelector(".feedback-save-button")!.addEventListener("click", async () => {
+      await fetch(`/api/admin/feedback/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: statusSelect.value, response: responseInput.value }),
+      });
+      await loadFeedback();
+    });
+
     list.appendChild(el);
   }
 }

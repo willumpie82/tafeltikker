@@ -93,6 +93,10 @@ export const feedback = sqliteTable("feedback", {
     .notNull()
     .references(() => parents.id),
   message: text("message").notNull(),
+  status: text("status", { enum: ["new", "accepted", "need_info", "planned", "fixed", "declined"] })
+    .notNull()
+    .default("new"),
+  response: text("response"),
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
 

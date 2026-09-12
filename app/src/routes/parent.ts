@@ -167,7 +167,13 @@ export default async function parentRoutes(app: FastifyInstance) {
     if (!parentId) return reply.code(401).send({ error: "not_authenticated" });
 
     return db
-      .select({ id: feedback.id, message: feedback.message, createdAt: feedback.createdAt })
+      .select({
+        id: feedback.id,
+        message: feedback.message,
+        status: feedback.status,
+        response: feedback.response,
+        createdAt: feedback.createdAt,
+      })
       .from(feedback)
       .where(eq(feedback.parentId, parentId))
       .orderBy(desc(feedback.createdAt));
