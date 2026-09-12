@@ -7,7 +7,12 @@ general:
 - [n] userlevels: child, parent, user-admin (manage parents+childs, cannot see progress), system-admin same as user-admin + promote roles + create new users
 - [x] the screen is now highly optimized for mobile, make it more adaptive, sometimes with 'sommen' when the hint is displayed, parts drop of the screen. on widescreen show the hint left of the test — root cause was `align-items: center` on `<body>` silently clipping the top of overflowing content with no way to scroll to it; switched to `align-items: safe center`. On screens ≥900px the math exercise now shows the hint panel in a column to the left of the question/pad instead of stacked above it.
 - [x] on login screen add remark - 'tafeltikken beta. + version e.g. v0.1 — added "Tafeltikker · beta v0.1" under the avatar grid and under the parent login form
-- [n] commit changes and deploy on proxmox LXC
+- [planned] commit changes and deploy on proxmox LXC
+- [n] make sure passwords are not passed as plain text (noticed a curl cmd with plain password)
+- [n] show invite option in 'ouder' tab, create field to reveal invite url, keep in mind that this wil (later-on) be tafeltikker.oldemans.nl (or other URL configured in env)
+- [n] (user)-admin(s) should be able to add children and assign to parent, user-admin
+- [x] kind-avatar in ouderportal is not working, (can't add due to missing avatar) — root cause: something in the browser (password manager/extension, reproduced even in Private Browsing) was silently stripping the dynamically-added `<option>`s from the native `<select>`, leaving it empty. Replaced it with a plain clickable emoji button-picker (same pattern the kid app already uses for its own avatar grid) in both the parent dashboard and admin child editor — no native select involved, so nothing to strip. Verified end-to-end with an automated browser test (add a child with a chosen avatar, confirm it saves and appears in the list).
+- [n] add status & response to feedback (accepted, need info, planned, fixed, declined)
 
 parent dashboard
 - [x] progress per mode % correct per challange (letters, woorden, zinnen, sommen per tafel reeks) — Sommen (per-table) and Typen (per-level: letters/woorden/zinnen) both shown now

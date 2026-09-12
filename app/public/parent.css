@@ -65,6 +65,26 @@ select {
   border-radius: 6px;
 }
 
+.avatar-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.avatar-picker-button {
+  font-size: 1.5rem;
+  padding: 6px 12px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+}
+
+.avatar-picker-button.selected {
+  border-color: var(--accent);
+  background: #eef4ff;
+}
+
 button {
   font-size: 0.95rem;
   padding: 10px 16px;

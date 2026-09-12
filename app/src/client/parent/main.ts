@@ -1,4 +1,4 @@
-import { AVATAR_EMOJI, emojiFor } from "../avatars.js";
+import { emojiFor, buildAvatarPicker } from "../avatars.js";
 
 type Child = { id: number; name: string; avatarId: string };
 type Stats = {
@@ -69,23 +69,13 @@ document.getElementById("logout-button")!.addEventListener("click", async () => 
   showLogin();
 });
 
-function populateAvatarSelect(select: HTMLSelectElement, selected?: string) {
-  select.innerHTML = "";
-  for (const avatarId of Object.keys(AVATAR_EMOJI)) {
-    const option = document.createElement("option");
-    option.value = avatarId;
-    option.textContent = `${AVATAR_EMOJI[avatarId]} ${avatarId}`;
-    option.selected = avatarId === selected;
-    select.appendChild(option);
-  }
-}
-
 const addChildButton = document.getElementById("add-child-button")!;
 const addChildForm = document.getElementById("add-child-form") as HTMLFormElement;
-const addChildAvatarSelect = document.getElementById("new-child-avatar") as HTMLSelectElement;
+const addChildAvatarPicker = document.getElementById("new-child-avatar-picker")!;
+let newChildAvatarId = "";
 
 addChildButton.addEventListener("click", () => {
-  populateAvatarSelect(addChildAvatarSelect);
+  buildAvatarPicker(addChildAvatarPicker, undefined, (id) => (newChildAvatarId = id));
   addChildForm.hidden = false;
   addChildButton.hidden = true;
 });
@@ -99,7 +89,7 @@ document.getElementById("cancel-add-child")!.addEventListener("click", () => {
 addChildForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const name = (document.getElementById("new-child-name") as HTMLInputElement).value;
-  const avatarId = addChildAvatarSelect.value;
+  const avatarId = newChildAvatarId;
   const pin = (document.getElementById("new-child-pin") as HTMLInputElement).value;
   const errorEl = document.getElementById("add-child-error")!;
 
@@ -178,7 +168,7 @@ function buildEditForm(child: Child, onSaved: () => void): HTMLFormElement {
   form.className = "edit-form";
   form.innerHTML = `
     <label>Naam <input type="text" name="name" value="${child.name}" required /></label>
-    <label>Avatar <select name="avatarId"></select></label>
+    <label>Avatar <div class="avatar-picker" data-avatar-picker></div></label>
     <label>Nieuwe geheime code <input type="text" name="pin" inputmode="numeric" pattern="\\d{4}" maxlength="4" />
       <small>Laat leeg om de code niet te wijzigen.</small>
     </label>
@@ -187,14 +177,15 @@ function buildEditForm(child: Child, onSaved: () => void): HTMLFormElement {
     </div>
     <p class="error-text" hidden></p>
   `;
-  populateAvatarSelect(form.querySelector("select[name=avatarId]")!, child.avatarId);
+  let selectedAvatarId = child.avatarId;
+  buildAvatarPicker(form.querySelector("[data-avatar-picker]")!, child.avatarId, (id) => (selectedAvatarId = id));
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const data = new FormData(form);
     const body: Record<string, string> = {
       name: String(data.get("name") ?? ""),
-      avatarId: String(data.get("avatarId") ?? ""),
+      avatarId: selectedAvatarId,
     };
     const pin = String(data.get("pin") ?? "");
     if (pin) body.pin = pin;

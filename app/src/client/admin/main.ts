@@ -1,4 +1,4 @@
-import { AVATAR_EMOJI, emojiFor } from "../avatars.js";
+import { emojiFor, buildAvatarPicker } from "../avatars.js";
 
 type Role = "parent" | "user_admin" | "system_admin";
 type ParentRow = { id: number; username: string; role: Role; createdAt: string };
@@ -24,17 +24,6 @@ let myRole: Role = "parent";
 
 const appEl = document.getElementById("admin-app")!;
 const deniedEl = document.getElementById("admin-denied")!;
-
-function populateAvatarSelect(select: HTMLSelectElement, selected?: string) {
-  select.innerHTML = "";
-  for (const avatarId of Object.keys(AVATAR_EMOJI)) {
-    const option = document.createElement("option");
-    option.value = avatarId;
-    option.textContent = `${AVATAR_EMOJI[avatarId]} ${avatarId}`;
-    option.selected = avatarId === selected;
-    select.appendChild(option);
-  }
-}
 
 function showTab(name: string) {
   document.querySelectorAll<HTMLElement>(".admin-tab").forEach((el) => {
@@ -170,21 +159,22 @@ function renderChildRow(child: ChildRow): HTMLElement {
     editForm.className = "edit-form";
     editForm.innerHTML = `
       <label>Naam <input type="text" name="name" value="${child.name}" required /></label>
-      <label>Avatar <select name="avatarId"></select></label>
+      <label>Avatar <div class="avatar-picker" data-avatar-picker></div></label>
       <label>Nieuwe geheime code <input type="text" name="pin" inputmode="numeric" pattern="\\d{4}" maxlength="4" />
         <small>Laat leeg om de code niet te wijzigen.</small>
       </label>
       <div class="form-actions"><button type="submit">Opslaan</button></div>
       <p class="error-text" hidden></p>
     `;
-    populateAvatarSelect(editForm.querySelector("select[name=avatarId]")!, child.avatarId);
+    let selectedAvatarId = child.avatarId;
+    buildAvatarPicker(editForm.querySelector("[data-avatar-picker]")!, child.avatarId, (id) => (selectedAvatarId = id));
 
     editForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const data = new FormData(editForm!);
       const body: Record<string, string> = {
         name: String(data.get("name") ?? ""),
-        avatarId: String(data.get("avatarId") ?? ""),
+        avatarId: selectedAvatarId,
       };
       const pin = String(data.get("pin") ?? "");
       if (pin) body.pin = pin;
