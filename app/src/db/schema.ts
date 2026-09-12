@@ -62,6 +62,7 @@ export const mathAttempts = sqliteTable(
     operandB: integer("operand_b").notNull(),
     correct: integer("correct", { mode: "boolean" }).notNull(),
     hintUsed: integer("hint_used", { mode: "boolean" }).notNull().default(false),
+    elapsedMs: integer("elapsed_ms"),
     answeredAt: text("answered_at").notNull().default(sql`(current_timestamp)`),
   },
   (table) => [index("math_attempts_child_idx").on(table.childId, table.answeredAt)],

@@ -4,9 +4,22 @@ type Child = { id: number; name: string; avatarId: string };
 type Stats = {
   time: { totalSeconds: number; todaySeconds: number; weekSeconds: number };
   perTable: { tableNumber: number; total: number; correct: number }[];
+  perFact: { tableNumber: number; operandB: number; total: number; correct: number; avgElapsedMs: number | null }[];
   trend: { day: string; total: number; correct: number }[];
   perTypingLevel: { level: string; total: number; avgAccuracy: number; avgWpm: number }[];
 };
+
+/**
+ * Combines accuracy and speed into one 0-100 score: a fact answered
+ * correctly every time but slowly still shows as shaky, not just "100%".
+ * 3s is treated as a confident pace; never penalized below half credit
+ * purely for being slow, since getting it right still matters most.
+ */
+function factConfidence(correct: number, total: number, avgElapsedMs: number | null): number {
+  const accuracy = total > 0 ? correct / total : 0;
+  const speedFactor = avgElapsedMs ? Math.min(1, Math.max(0.5, 3000 / avgElapsedMs)) : 1;
+  return Math.round(accuracy * speedFactor * 100);
+}
 
 const TYPING_LEVEL_LABELS: Record<string, string> = {
   letters: "Letters",
@@ -128,16 +141,50 @@ addChildForm.addEventListener("submit", async (event) => {
   await loadDashboard();
 });
 
-function renderTableAccuracy(perTable: Stats["perTable"]): string {
+function renderTableAccuracy(perTable: Stats["perTable"], perFact: Stats["perFact"]): string {
   if (perTable.length === 0) {
     return `<p class="no-data">Nog geen sommen geoefend.</p>`;
   }
+
+  const factsByTable = new Map<number, Stats["perFact"]>();
+  for (const fact of perFact) {
+    const list = factsByTable.get(fact.tableNumber) ?? [];
+    list.push(fact);
+    factsByTable.set(fact.tableNumber, list);
+  }
+
   return `<div class="table-accuracy-list">${perTable
     .map((row) => {
       const pct = row.total > 0 ? Math.round((row.correct / row.total) * 100) : 0;
+      const factsByMultiplier = new Map((factsByTable.get(row.tableNumber) ?? []).map((f) => [f.operandB, f]));
+
+      const factBars = Array.from({ length: 10 }, (_, i) => i + 1)
+        .map((multiplier) => {
+          const fact = factsByMultiplier.get(multiplier);
+          if (!fact) {
+            return `<div class="fact-bar fact-bar-empty" title="${row.tableNumber} × ${multiplier}: nog niet geoefend">
+              <span class="fact-bar-label">${multiplier}</span>
+            </div>`;
+          }
+          const confidence = factConfidence(fact.correct, fact.total, fact.avgElapsedMs);
+          const tier = confidence >= 80 ? "high" : confidence >= 50 ? "medium" : "low";
+          const avgSeconds = fact.avgElapsedMs ? (fact.avgElapsedMs / 1000).toFixed(1) : "?";
+          return `<div class="fact-bar" title="${row.tableNumber} × ${multiplier}: ${fact.correct}/${fact.total} goed, gem. ${avgSeconds}s">
+            <div class="fact-bar-fill ${tier}" style="height:${confidence}%"></div>
+            <span class="fact-bar-label">${multiplier}</span>
+          </div>`;
+        })
+        .join("");
+
       return `<div class="table-accuracy-row">
-        Tafel ${row.tableNumber}: ${row.correct}/${row.total} (${pct}%)
+        <div class="table-accuracy-summary">
+          <span>Tafel ${row.tableNumber}: ${row.correct}/${row.total} (${pct}%)</span>
+          <button type="button" class="table-facts-toggle" data-table="${row.tableNumber}">meer &darr;</button>
+        </div>
         <div class="accuracy-bar"><div class="accuracy-bar-fill" style="width:${pct}%"></div></div>
+        <div class="table-facts-detail" data-table-detail="${row.tableNumber}" hidden>
+          <div class="fact-bar-row">${factBars}</div>
+        </div>
       </div>`;
     })
     .join("")}</div>`;
@@ -241,11 +288,21 @@ async function renderChildCard(child: Child): Promise<HTMLElement> {
       <span>Totaal: <strong>${formatDuration(stats.time.totalSeconds)}</strong></span>
     </div>
     <h3>Sommen</h3>
-    ${renderTableAccuracy(stats.perTable)}
+    ${renderTableAccuracy(stats.perTable, stats.perFact)}
     ${renderTrend(stats.trend)}
     <h3>Typen</h3>
     ${renderTypingLevels(stats.perTypingLevel)}
   `;
+
+  // Toggling only shows/hides bars already rendered above — no new DOM
+  // insertion happens in this click handler.
+  card.querySelectorAll<HTMLButtonElement>(".table-facts-toggle").forEach((button) => {
+    button.addEventListener("click", () => {
+      const detail = card.querySelector<HTMLElement>(`[data-table-detail="${button.dataset.table}"]`)!;
+      detail.hidden = !detail.hidden;
+      button.innerHTML = detail.hidden ? "meer &darr;" : "minder &uarr;";
+    });
+  });
 
   const editToggle = card.querySelector(".child-edit-toggle")!;
   let editForm: HTMLFormElement | null = null;

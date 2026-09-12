@@ -44,6 +44,7 @@ let currentIndex = 0;
 let targetCount = 0;
 let currentAnswer = "";
 let answered = false;
+let questionStartTime = 0;
 let hintUsedForCurrent = false;
 let triesUsed = 0;
 let correctCount = 0;
@@ -252,6 +253,7 @@ function showQuestion() {
   answered = false;
   hintUsedForCurrent = false;
   triesUsed = 0;
+  questionStartTime = Date.now();
   answerDisplayEl.innerHTML = "&nbsp;";
   feedbackEl.hidden = true;
   nextButtonEl.hidden = true;
@@ -326,6 +328,7 @@ async function finalizeAttempt(answerValue: number, hintUsed: boolean) {
       operandB: question.operandB,
       answer: answerValue,
       hintUsed,
+      elapsedMs: Date.now() - questionStartTime,
     }),
   });
   const result = await res.json();

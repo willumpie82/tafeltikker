@@ -208,14 +208,30 @@ button#logout-button {
 }
 
 .table-accuracy-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
 .table-accuracy-row {
   font-size: 0.85rem;
+}
+
+.table-accuracy-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-facts-toggle {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.8rem;
+  padding: 2px 4px;
+  cursor: pointer;
 }
 
 .accuracy-bar {
@@ -229,6 +245,61 @@ button#logout-button {
 .accuracy-bar-fill {
   height: 100%;
   background: var(--success);
+}
+
+.table-facts-detail {
+  margin-top: 10px;
+}
+
+.fact-bar-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 50px;
+  padding-bottom: 18px;
+}
+
+.fact-bar {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  background: #f1f1f1;
+  border-radius: 3px 3px 0 0;
+}
+
+.fact-bar-fill {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+}
+
+.fact-bar-fill.high {
+  background: var(--success);
+}
+
+.fact-bar-fill.medium {
+  background: #f08c00;
+}
+
+.fact-bar-fill.low {
+  background: var(--error);
+}
+
+.fact-bar-empty {
+  background: #f8f8f8;
+  border: 1px dashed var(--border);
+}
+
+.fact-bar-label {
+  position: absolute;
+  bottom: -18px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.65rem;
+  color: #888;
 }
 
 .trend-row {

@@ -1,0 +1,1 @@
+ALTER TABLE `math_attempts` ADD `elapsed_ms` integer;

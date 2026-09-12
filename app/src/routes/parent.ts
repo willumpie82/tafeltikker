@@ -132,6 +132,21 @@ export default async function parentRoutes(app: FastifyInstance) {
       .groupBy(mathAttempts.tableNumber)
       .orderBy(mathAttempts.tableNumber);
 
+    // Per individual fact (table x multiplier) — lets the dashboard show
+    // which specific facts are shaky, not just the table as a whole.
+    const perFact = await db
+      .select({
+        tableNumber: mathAttempts.tableNumber,
+        operandB: mathAttempts.operandB,
+        total: sql<number>`count(*)`,
+        correct: sql<number>`sum(${mathAttempts.correct})`,
+        avgElapsedMs: sql<number | null>`avg(${mathAttempts.elapsedMs})`,
+      })
+      .from(mathAttempts)
+      .where(eq(mathAttempts.childId, childId))
+      .groupBy(mathAttempts.tableNumber, mathAttempts.operandB)
+      .orderBy(mathAttempts.tableNumber, mathAttempts.operandB);
+
     const trend = await db
       .select({
         day: sql<string>`date(${mathAttempts.answeredAt})`,
@@ -157,6 +172,7 @@ export default async function parentRoutes(app: FastifyInstance) {
     return {
       time: timeRow,
       perTable,
+      perFact,
       trend,
       perTypingLevel,
     };

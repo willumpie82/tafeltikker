@@ -15,13 +15,13 @@ export default async function mathRoutes(app: FastifyInstance) {
 
   app.post<{
     Params: { id: string };
-    Body: { tableNumber: number; operandA: number; operandB: number; answer: number; hintUsed: boolean };
+    Body: { tableNumber: number; operandA: number; operandB: number; answer: number; hintUsed: boolean; elapsedMs?: number };
   }>("/api/child/math/sessions/:id/attempts", async (request, reply) => {
     const childId = requireChildId(request);
     if (!childId) return reply.code(401).send({ error: "not_authenticated" });
 
     const sessionId = Number(request.params.id);
-    const { tableNumber, operandA, operandB, answer, hintUsed } = request.body ?? {};
+    const { tableNumber, operandA, operandB, answer, hintUsed, elapsedMs } = request.body ?? {};
 
     if (![tableNumber, operandA, operandB, answer].every(Number.isInteger)) {
       return reply.code(400).send({ error: "invalid_request" });
@@ -43,6 +43,7 @@ export default async function mathRoutes(app: FastifyInstance) {
       operandB,
       correct,
       hintUsed: Boolean(hintUsed),
+      elapsedMs: Number.isFinite(elapsedMs) ? Math.round(elapsedMs!) : null,
     });
 
     return { correct, correctAnswer };
