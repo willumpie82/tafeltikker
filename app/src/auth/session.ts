@@ -26,6 +26,13 @@ function resolveKey(envVar: string): Buffer {
   return randomBytes(32);
 }
 
+// Off by default so the app still works over plain HTTP (LAN access, or
+// before a reverse proxy is wired up) — a secure-only cookie is silently
+// never sent over http, which would look exactly like being logged out.
+// Set once TLS is actually terminating in front of this instance (e.g. by
+// Cloudflare/nginx-proxy-manager) and confirmed working.
+const cookieSecure = process.env.COOKIE_SECURE === "true";
+
 export default fp(async function sessionPlugin(app: FastifyInstance) {
   await app.register(secureSession, [
     {
@@ -33,14 +40,14 @@ export default fp(async function sessionPlugin(app: FastifyInstance) {
       cookieName: "child_session",
       key: resolveKey("CHILD_SESSION_KEY"),
       expiry: 2 * 60 * 60, // 2 hours
-      cookie: { path: "/", httpOnly: true, sameSite: "lax" },
+      cookie: { path: "/", httpOnly: true, sameSite: "lax", secure: cookieSecure },
     },
     {
       sessionName: "parentSession",
       cookieName: "parent_session",
       key: resolveKey("PARENT_SESSION_KEY"),
       expiry: 12 * 60 * 60, // 12 hours
-      cookie: { path: "/", httpOnly: true, sameSite: "lax" },
+      cookie: { path: "/", httpOnly: true, sameSite: "lax", secure: cookieSecure },
     },
   ]);
 });

@@ -17,7 +17,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 3000);
 const HOST = process.env.HOST ?? "0.0.0.0";
 
-const app = Fastify({ logger: true });
+// Behind a reverse proxy (nginx-proxy-manager, Cloudflare), this makes
+// request.ip reflect the real client from X-Forwarded-For instead of the
+// proxy's own address. Harmless with no proxy in front (falls back to the
+// raw socket address).
+const app = Fastify({ logger: true, trustProxy: true });
 
 await app.register(sessionPlugin);
 await app.register(fastifyStatic, {
