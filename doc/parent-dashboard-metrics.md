@@ -28,10 +28,21 @@ glance shows which facts need attention: `high` (>=80%, green), `medium`
 (50-79%, orange), `low` (<50%, red).
 
 ## Collapsed by default
-Each table still shows its existing rollup line (`Tafel 3: 5/5 (100%)` +
-accuracy bar) so the dashboard doesn't get taller than before. A "meer ↓"
-toggle per table reveals a row of 10 bars (one per multiplier 1-10); "minder
-↑" collapses it back. All 10 bars are rendered up front (just hidden) rather
-than built when the toggle is clicked — building them reactively inside the
-click handler ran into the same silent-DOM-drop issue as the avatar picker
-fix, so toggling only ever flips `hidden` on already-existing elements.
+Each table shows a rollup line — **confidence, not raw accuracy** — so the
+dashboard doesn't get taller than before while collapsed: `Tafel 3: 62%
+zelfvertrouwen (24/27 goed)`, where the `62%` is the average of that
+table's 10 per-fact confidence scores (untried facts count as `0`, same as
+the per-fact bars). This was the original intent but the first
+implementation collapsed to plain accuracy instead (`Tafel 3: 5/5 (100%)`)
+— fixed after it turned out actively misleading in practice: a table
+answered correctly but slowly could read "100%" while every bar
+underneath it, once expanded, was orange or red. The raw correct/total
+count is still shown alongside it for transparency, just no longer as the
+headline number.
+
+A "meer ↓" toggle per table reveals a row of 10 bars (one per multiplier
+1-10); "minder ↑" collapses it back. All 10 bars are rendered up front
+(just hidden) rather than built when the toggle is clicked — building them
+reactively inside the click handler ran into the same silent-DOM-drop
+issue as the avatar picker fix, so toggling only ever flips `hidden` on
+already-existing elements.

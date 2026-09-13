@@ -195,9 +195,9 @@ function renderTableAccuracy(perTable: Stats["perTable"], perFact: Stats["perFac
 
   return `<div class="table-accuracy-list">${perTable
     .map((row) => {
-      const pct = row.total > 0 ? Math.round((row.correct / row.total) * 100) : 0;
       const factsByMultiplier = new Map((factsByTable.get(row.tableNumber) ?? []).map((f) => [f.operandB, f]));
 
+      let confidenceSum = 0;
       const factBars = Array.from({ length: 10 }, (_, i) => i + 1)
         .map((multiplier) => {
           const fact = factsByMultiplier.get(multiplier);
@@ -207,6 +207,7 @@ function renderTableAccuracy(perTable: Stats["perTable"], perFact: Stats["perFac
             </div>`;
           }
           const confidence = factConfidence(fact.correct, fact.total, fact.avgElapsedMs);
+          confidenceSum += confidence;
           const tier = confidence >= 80 ? "high" : confidence >= 50 ? "medium" : "low";
           const avgSeconds = fact.avgElapsedMs ? (fact.avgElapsedMs / 1000).toFixed(1) : "?";
           return `<div class="fact-bar" title="${row.tableNumber} × ${multiplier}: ${fact.correct}/${fact.total} goed, gem. ${avgSeconds}s">
@@ -216,12 +217,19 @@ function renderTableAccuracy(perTable: Stats["perTable"], perFact: Stats["perFac
         })
         .join("");
 
+      // The rollup shows the same confidence measure as the bars below it
+      // (accuracy × speed, untried facts counting as 0) rather than plain
+      // accuracy — showing raw accuracy here was actively misleading: a
+      // table answered correctly but slowly could read "100%" while every
+      // bar underneath it was orange or red.
+      const confidencePct = Math.round(confidenceSum / 10);
+
       return `<div class="table-accuracy-row">
         <div class="table-accuracy-summary">
-          <span>Tafel ${row.tableNumber}: ${row.correct}/${row.total} (${pct}%)</span>
+          <span>Tafel ${row.tableNumber}: ${confidencePct}% zelfvertrouwen (${row.correct}/${row.total} goed)</span>
           <button type="button" class="table-facts-toggle" data-table="${row.tableNumber}">meer &darr;</button>
         </div>
-        <div class="accuracy-bar"><div class="accuracy-bar-fill" style="width:${pct}%"></div></div>
+        <div class="accuracy-bar"><div class="accuracy-bar-fill" style="width:${confidencePct}%"></div></div>
         <div class="table-facts-detail" data-table-detail="${row.tableNumber}" hidden>
           <div class="fact-bar-row">${factBars}</div>
         </div>
