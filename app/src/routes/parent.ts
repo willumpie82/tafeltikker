@@ -4,7 +4,7 @@ import { db } from "../db/index.js";
 import { parents, children, parentChild, practiceSessions, mathAttempts, typingAttempts, feedback } from "../db/schema.js";
 import { hashSecret, isValidPin, verifySecret } from "../auth/password.js";
 import { requireParentId } from "../auth/require.js";
-import { applyChildUpdate, InvalidPinError, NothingToUpdateError } from "./childUpdates.js";
+import { applyChildUpdate, deleteChild, InvalidPinError, NothingToUpdateError } from "./childUpdates.js";
 
 export async function assertOwnsChild(parentId: number, childId: number): Promise<boolean> {
   const [link] = await db
@@ -102,6 +102,19 @@ export default async function parentRoutes(app: FastifyInstance) {
       }
     },
   );
+
+  app.delete<{ Params: { id: string } }>("/api/parent/children/:id", async (request, reply) => {
+    const parentId = requireParentId(request);
+    if (!parentId) return reply.code(401).send({ error: "not_authenticated" });
+
+    const childId = Number(request.params.id);
+    if (!(await assertOwnsChild(parentId, childId))) {
+      return reply.code(404).send({ error: "child_not_found" });
+    }
+
+    deleteChild(childId);
+    return { ok: true };
+  });
 
   app.get<{ Params: { id: string } }>("/api/parent/children/:id/stats", async (request, reply) => {
     const parentId = requireParentId(request);

@@ -165,6 +165,12 @@ button#logout-button {
   gap: 8px;
 }
 
+.delete-child-button {
+  background: white;
+  color: var(--error);
+  border-color: var(--error);
+}
+
 .children-list {
   display: flex;
   flex-direction: column;

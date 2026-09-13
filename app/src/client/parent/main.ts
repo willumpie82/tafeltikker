@@ -431,6 +431,7 @@ function buildEditForm(child: Child, onSaved: () => void): HTMLFormElement {
     </label>
     <div class="form-actions">
       <button type="submit">Opslaan</button>
+      <button type="button" class="delete-child-button">Verwijderen</button>
     </div>
     <p class="error-text" hidden></p>
   `;
@@ -457,6 +458,23 @@ function buildEditForm(child: Child, onSaved: () => void): HTMLFormElement {
     const errorEl = form.querySelector(".error-text") as HTMLElement;
     if (!res.ok) {
       errorEl.textContent = "Er ging iets mis bij het opslaan.";
+      errorEl.hidden = false;
+      return;
+    }
+
+    onSaved();
+  });
+
+  form.querySelector(".delete-child-button")!.addEventListener("click", async () => {
+    if (!window.confirm(`Weet je zeker dat je ${child.name} wilt verwijderen? Alle voortgang gaat hiermee permanent verloren.`)) {
+      return;
+    }
+
+    const res = await fetch(`/api/parent/children/${child.id}`, { method: "DELETE" });
+
+    const errorEl = form.querySelector(".error-text") as HTMLElement;
+    if (!res.ok) {
+      errorEl.textContent = "Er ging iets mis bij het verwijderen.";
       errorEl.hidden = false;
       return;
     }
