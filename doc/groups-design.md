@@ -106,25 +106,92 @@ all.
 4. From there, login proceeds exactly as it does today — tap your tile,
    enter your PIN. Nothing about the child-facing login itself changes.
 
+## Group creation
+
+Only `system_admin`/`user_admin` can create a group, via the admin area —
+not self-service by any parent, matching how child/parent creation already
+works in this app (one consistent "admin sets things up" pattern, and no
+open group-creation spam surface).
+
+- **Fields**: display name, slug (auto-suggested from the name, admin-
+  editable, validated for uniqueness and URL-safe characters — lowercase,
+  digits, `-`/`_`).
+- **Group admin is a per-group relation, not a global role.** A new
+  `group_admins` join table (`groupId`, `parentId`) records who
+  administers a given group — separate from and unaffected by the existing
+  instance-wide `parents.role` enum (`parent | user_admin | system_admin`).
+  A parent can be a group admin for one group and an ordinary member of
+  another. The creating admin picks who the group's first admin is (often
+  themselves, if they're also a parent).
+- **"Klas geheim" is auto-generated at creation time** — random, ~6-8
+  characters, excluding visually-ambiguous ones (`0`/`O`, `1`/`l`/`I`) —
+  shown once to the group admin with a "regenereer" action. Never
+  admin-typed, so it's never accidentally weak or guessable.
+
+## Joining a group (invite-link flow) — v1 scope
+
+For v1, **invite-link is the only join path** — a dashboard-visible
+accept/decline card for parents who already have an account is real but
+explicitly deferred (see below), since invite-link alone already covers
+both the new- and existing-parent cases.
+
+The design gap an earlier pass missed: an invite only got a parent
+*account* linked to a group, with nothing ensuring a *child* ends up
+correctly linked too. Fixed by scoping each invite to a specific child, not
+just a bare group link — the group admin already knows their own roster,
+so let that be the source of truth the accept flow confirms against,
+rather than asking the parent to self-identify from scratch.
+
+1. **Group admin creates the invite**: picks the group and types the
+   child's name as they know it (spelling doesn't need to be exact — see
+   fuzzy matching below), and gets a single-use, expiring link (same token
+   mechanism as the existing parent-invite system) to hand to that child's
+   parent however suits them.
+2. **Parent opens the link** → logs in (existing account) or registers
+   (new account) — same choice as today's registration screen, but
+   presented as two explicit, clearly-labeled steps rather than one form:
+   - **Stap 1: Jouw account** — parent credentials.
+   - **Stap 2: [invite's child name]'s account** — everything below.
+3. **Existing parent — fuzzy match.** The invite's child-name is
+   fuzzy-matched against that parent's existing children. A confident best
+   match shows an explicit confirmation screen with the child's avatar +
+   name — **"Is dit [avatar] [naam]?" (Ja/Nee)** — never auto-linked
+   silently. Confirming links that child to the group (see the open
+   multi-group question below). Declining, or no confident match, falls
+   through to a manual checklist of the parent's other children plus
+   "+ nieuw kind toevoegen".
+4. **New parent, or no match**: a child is auto-created using the invite's
+   child-name and pre-assigned to the group — the parent's remaining work
+   is just picking an avatar and setting the child's PIN, not re-entering
+   identity/group details the invite already pinned down.
+5. **Success screen states plainly what happened** (e.g. "Tim is
+   toegevoegd aan De Fonkel 5A") rather than silently landing on the
+   dashboard.
+
+**Monkey-proofing this deliberately**: two clearly-labeled steps (own
+account, then child's account); every child-matching decision is an
+explicit yes/no confirmation showing avatar + name, never inferred or
+silently applied; and it ends on a named summary, not a bare redirect —
+because a confused parent here is creating/confirming *two* accounts in
+one sitting, not one.
+
 ## Deferred / open questions
 
 Not resolved by this doc — real product decisions still needed before
 building:
 
-- **How group admin is modeled.** Almost certainly *not* a value in the
-  global `parents.role` enum (`parent | user_admin | system_admin`) — those
-  are instance-wide roles, while a group admin (teacher) should only
-  administer their own group(s). Likely a per-group relation instead (e.g.
-  a `group_admins` join table), but not designed here.
-- **How a parent joins a group in the first place** (as opposed to
-  unlocking the *view* of a group they're already in, which is what this
-  doc covers). `new-functionality.md`'s existing notes sketch an
-  invite-link flow (reusing the parent-invite pattern) and a
-  dashboard-visible pending accept/decline card — neither fleshed out yet.
-- **Group creation UI**, uniqueness checks for group slugs/child names
-  within a group, and whether `/api/child/avatars`' current
-  no-scoping-at-all behavior gets fixed as part of this work or
-  separately (it should — see "Motivation" above).
+- **Can a child belong to more than one group at once, or does joining a
+  new one move them out of an old one?** Leaning toward one group per
+  child (`groupId`, nullable, on `children`) since "which class is my kid
+  in" is naturally singular — with an explicit warning ("Tim zit al in De
+  Fonkel 5B — verplaatsen naar deze groep?") if step 3/4 above resolves to
+  a child who's already in a different group. Not yet confirmed.
+- **Dashboard accept/decline** as a second join path for already-
+  registered parents — explicitly out of scope for v1 (see above), revisit
+  once invite-link-only usage shows whether it's actually needed.
+- **Exact fuzzy-match algorithm/threshold** (how different the invite's
+  spelling can be from a stored name before it stops suggesting a match) —
+  implementation detail, not designed yet.
 - **Per-group challenges** and **public sticker/achievement visibility**
   (both already flagged as deferred in `challenge-module-design.md`,
   pending this doc) — become buildable once group membership exists, but
