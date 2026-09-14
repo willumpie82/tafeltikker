@@ -341,11 +341,47 @@ h1 {
   }
 }
 
+@media (min-width: 900px) and (orientation: landscape) {
+  /* In landscape (tablets held sideways, laptops/desktops), the exercise
+     itself is the side a thumb/hand naturally rests near and gets more
+     visual priority — flip which side of the two columns it's on, without
+     changing that there are two columns at all. */
+  .math-hints-col {
+    order: 2;
+  }
+
+  .math-answer-area {
+    order: 1;
+  }
+
+  /* The 800px cap (set for the portrait/narrower two-column case) left huge
+     unused side margins on wide landscape viewports like an iPad in
+     landscape (~1133px wide). Let the exercise column use more of the
+     available width instead of floating in the middle of empty space. */
+  #app {
+    max-width: 1100px;
+  }
+
+  /* Landscape tablets/laptops are short on vertical space, not horizontal.
+     The default <h1> margins (sized off the 20px root font) ate ~60px of
+     height here for no visual benefit, which pushed total content past the
+     viewport height and made "safe center" clip the top of the layout. */
+  #math-question {
+    margin-top: 8px;
+    margin-bottom: 12px;
+  }
+}
+
 .answer-display {
   font-size: 2.2rem;
   font-weight: bold;
   min-height: 2.6rem;
   letter-spacing: 4px;
+  /* Override the browser's default <p> margin (~1em = ~35px top/bottom on
+     this font-size), which left a much larger gap above/below than any
+     other spacing in this layout — was a major contributor to the exercise
+     screen overflowing short viewports (e.g. iPad landscape). */
+  margin: 12px auto;
 }
 
 .math-feedback {
