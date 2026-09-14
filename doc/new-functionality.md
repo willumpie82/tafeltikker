@@ -10,7 +10,7 @@ general:
 
 - [n] found while building v1: resetting a tafel-confidence challenge doesn't actually give the kid a fresh shot at it — confidence is an all-time rolling average, not scoped to after the challenge starts (unlike tijd-gespeeld, which does restart cleanly), so if the underlying attempts already clear the bar, it just re-completes instantly. Worth a decision: leave as-is (it's honestly reporting current mastery), or scope confidence to attempts since startedAt too, like time-played does? => clear usecase, confidence should not be reset (you cannot unlearn ;-) ), it can be recreate/archived/deleted 
 
-- [n] On the dashboard history graph, show day(s) without training as an empty slot
+- [n] On the dashboard history graph, show day(s) without training time as and show non trained days as empty
 - [n] When creating invite, a role can be pre-assigned
 
 typing:
@@ -26,6 +26,7 @@ challange:
 
 
 Groups: [considering]
+- see `doc/groups-design.md` for the worked-out login/access-control design (slug vs. class-secret vs. parent-login, per-group cookie trust) — the items below are the earlier raw notes it grew out of
 - [n] Introduce groups
 - [n] Add group admin role (e.g. teacher)
 - [n] Group/sys admin and can create, edit and manage a group (add kids)
