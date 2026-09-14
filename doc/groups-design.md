@@ -160,20 +160,40 @@ rather than asking the parent to self-identify from scratch.
    - **Stap 1: Jouw account** — parent credentials.
    - **Stap 2: [invite's child name]'s account** — everything below.
 3. **Existing parent — fuzzy match.** The invite's child-name is
-   fuzzy-matched against that parent's existing children. A confident best
-   match shows an explicit confirmation screen with the child's avatar +
-   name — **"Is dit [avatar] [naam]?" (Ja/Nee)** — never auto-linked
-   silently. Confirming links that child to the group (see the open
-   multi-group question below). Declining, or no confident match, falls
-   through to a manual checklist of the parent's other children plus
-   "+ nieuw kind toevoegen".
+   fuzzy-matched (word-based, case-insensitive — "Tim" matches within
+   "Tim Oldemans") against that parent's existing children. A confident
+   best match shows an explicit confirmation screen with the child's
+   avatar + name — **"Is dit [avatar] [naam]?" (Ja/Nee)** — never
+   auto-linked silently. Confirming adds that child to the group (a child
+   can belong to more than one group at once — see "Data model" below).
+   Declining, or no confident match, falls through to a manual checklist
+   of the parent's other children plus "+ nieuw kind toevoegen".
 4. **New parent, or no match**: a child is auto-created using the invite's
-   child-name and pre-assigned to the group — the parent's remaining work
-   is just picking an avatar and setting the child's PIN, not re-entering
+   child-name and added to the group — the parent's remaining work is just
+   picking an avatar and setting the child's PIN, not re-entering
    identity/group details the invite already pinned down.
-5. **Success screen states plainly what happened** (e.g. "Tim is
+5. **Name-collision check**: whichever child is about to be confirmed/
+   created (steps 3-4), check whether that *display name* already exists
+   among the group's other current members. If so, prompt to add a
+   distinguishing bit (typically a last initial, e.g. "Tim O.") before
+   finishing — real classes do have two kids with the same first name, and
+   two identical tiles in one group's roster is genuinely confusing for a
+   child picking their own. No prompt at all when there's no collision, so
+   the common case stays frictionless.
+6. **Success screen states plainly what happened** (e.g. "Tim is
    toegevoegd aan De Fonkel 5A") rather than silently landing on the
    dashboard.
+
+## Data model
+
+A child can belong to **more than one group at once** — a new
+`group_children` join table (`groupId`, `childId`), mirroring the existing
+`parent_child` many-to-many pattern, rather than a single `groupId` column
+on `children`. Nothing here auto-removes a child from a group they're
+already in; a group admin who needs their roster kept current (e.g. a kid
+who's genuinely moved classes) does that as an explicit "remove from
+roster" action in their own group's admin view — ownership of that cleanup
+sits with the group admin, not the join flow.
 
 **Monkey-proofing this deliberately**: two clearly-labeled steps (own
 account, then child's account); every child-matching decision is an
@@ -187,15 +207,6 @@ one sitting, not one.
 Not resolved by this doc — real product decisions still needed before
 building:
 
-- **Can a child belong to more than one group at once, or does joining a
-  new one move them out of an old one?** Leaning toward one group per
-  child (`groupId`, nullable, on `children`) since "which class is my kid
-  in" is naturally singular — with an explicit warning ("Tim zit al in De
-  Fonkel 5B — verplaatsen naar deze groep?") if step 3/4 above resolves to
-  a child who's already in a different group. Not yet confirmed.
-- **Dashboard accept/decline** as a second join path for already-
-  registered parents — explicitly out of scope for v1 (see above), revisit
-  once invite-link-only usage shows whether it's actually needed.
 - **Exact fuzzy-match algorithm/threshold** (how different the invite's
   spelling can be from a stored name before it stops suggesting a match) —
   implementation detail, not designed yet.
@@ -203,3 +214,10 @@ building:
   (both already flagged as deferred in `challenge-module-design.md`,
   pending this doc) — become buildable once group membership exists, but
   the actual UI/rules aren't designed yet.
+
+**Decided against, not just deferred:** a dashboard-visible accept/decline
+card as a second join path for already-registered parents. Beyond
+invite-link alone already covering both cases, inviting-by-username would
+require the group admin to know or look up which account belongs to a
+given parent — real extra thought/lookup for no benefit invite-link doesn't
+already provide.
