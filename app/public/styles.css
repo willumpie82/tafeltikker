@@ -350,24 +350,53 @@ h1 {
 }
 
 @media (min-width: 900px) and (orientation: landscape) {
-  /* In landscape (tablets held sideways, laptops/desktops), the exercise
-     itself is the side a thumb/hand naturally rests near and gets more
-     visual priority — flip which side of the two columns it's on, without
-     changing that there are two columns at all. */
-  .math-hints-col {
-    order: 2;
-  }
-
-  .math-answer-area {
-    order: 1;
-  }
-
   /* The 800px cap (set for the portrait/narrower two-column case) left huge
      unused side margins on wide landscape viewports like an iPad in
      landscape (~1133px wide). Let the exercise column use more of the
      available width instead of floating in the middle of empty space. */
   #app {
     max-width: 1100px;
+  }
+
+  /* Put the back button inline with the progress bar instead of floating
+     fixed over the top-left corner of the viewport (its default, used on
+     every other screen) — in this wide layout that corner is far from the
+     content it's supposed to sit next to. */
+  #view-math-exercise {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 12px;
+  }
+
+  #math-exercise-back {
+    position: static;
+    flex: 0 0 auto;
+  }
+
+  .math-head {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+  }
+
+  #math-progress {
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .math-head .progress-bar {
+    flex: 1;
+    max-width: none;
+    margin: 0;
+  }
+
+  /* Forces a wrap onto its own row below the back button/progress row —
+     without an explicit basis it doesn't reliably claim the full width. */
+  .math-body {
+    flex: 1 1 100%;
   }
 
   /* Landscape tablets/laptops are short on vertical space, not horizontal.
@@ -377,6 +406,69 @@ h1 {
   #math-question {
     margin-top: 8px;
     margin-bottom: 12px;
+  }
+
+  /* Per the ipad mockup, the two columns don't just swap sides — they group
+     differently: the question and the table checklist belong together on
+     the left (both are "about the current exercise/table"), while the
+     keypad and its next button stand alone on the right. That grouping
+     cuts across the existing hints-col/answer-area markup split, so
+     dissolve the answer-area wrapper (keeping it in the DOM for
+     inheritance/JS, just not as a box) and place its children directly as
+     grid items instead.
+
+     Row numbers are assigned explicitly (not left to auto-placement).
+     The checklist (.math-hints-col) deliberately shares a row with the
+     keypad rather than getting a row of its own after it: an earlier
+     attempt gave the checklist the *next* row after the keypad's, which
+     meant the checklist's start position (and therefore the whole
+     column's height) depended on the keypad's ~460px height, pushing the
+     keypad's bottom (and its confirm button) below the viewport. Sharing
+     one row means the row is sized to whichever side is taller (almost
+     always the keypad) and the checklist simply renders top-aligned
+     within that space — it can grow a fair way (e.g. when a hint appears)
+     before it would ever start affecting the keypad's position. */
+  .math-body {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    column-gap: 24px;
+    align-items: start;
+  }
+
+  .math-answer-area {
+    display: contents;
+  }
+
+  #math-question {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  #math-try-timer {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  #math-options,
+  #math-answer-display {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .math-hints-col,
+  #math-pad {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  #math-pad {
+    grid-column: 2;
+  }
+
+  #math-next-button,
+  #math-next-hint {
+    grid-column: 2;
+    grid-row: 4;
   }
 }
 

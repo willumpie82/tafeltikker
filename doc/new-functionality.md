@@ -7,15 +7,16 @@ general:
 - [n] when adding functionallity, lets not just wipe the database, migrate the data to the new table where possible, add a test user/child combo
 - [n] dashboard shows history of plays, week/month (bar graph[number of tests/day])
 
-- [n] kind login screen: can we store the last logged in kids in a cookie? and only show the tile when it is stored, otherwise just (nick)name field, problem is, before kind tries to login, we don't know yet to what 'parent'/group this user belongs, test kind-naam unique-ness? if this app becomes popular, we have a user challange anyway, what if we add /[grouptag] to the URL (user admin can add group as e.g. schoolnaam_klasX "de_fonkel_5a")
+
 - [n] found while building v1: resetting a tafel-confidence challenge doesn't actually give the kid a fresh shot at it — confidence is an all-time rolling average, not scoped to after the challenge starts (unlike tijd-gespeeld, which does restart cleanly), so if the underlying attempts already clear the bar, it just re-completes instantly. Worth a decision: leave as-is (it's honestly reporting current mastery), or scope confidence to attempts since startedAt too, like time-played does?
 
 - [n] on the dashboard history graph, show day(s) without training as an empty slot
 
 typing:
-
+- [?] we have to rethink typing on a tablet, also the layout in landscape when a touch keyboard is shown there is not much to see anymore, let me create a mockup for it as well, there are a few scenario's at play here
 
 calc:
+- [n] during play, on the tafel indicators, show failed (orange), show good (green) (as is), show todo (grey)
 
 challange:
 - [n] archive a challange (e.g. the kid has earned his reward)
@@ -23,5 +24,17 @@ challange:
 - [n] in hard mode, when the time expires, the same test repeats 3x (same as multiple choice, but kid has now practically 24s per test)
 
 
-landscape:
-- [n] layout still suboptimal
+groups: [considering]
+- [n] Introduce groups
+- [n] Group admin role (e.g. teacher)
+- [n] Group/sys admin and can create, edit and manage a group (add kids)
+- [n] Group admin can see list of existing parent/children to invite to his group
+- [n] on kids dashboard show invite when available, but only parent can accept, when invite is clicked, popup shown for parent to sign-in show 'accept/decline' button after login, also show invite on parent dashboard kids progress card [accept/decline button]
+
+- [n] on login-screen first show field to 'enter' the group_tag, if correct show kid-selection
+- [n] also accecable via tafeltikker.oldemans.nl/group_tag
+- [n] cookie stores what the last group was, and resumes that.
+- [n] for security: should we use e.g. "teacher" name as 'password'/gatekeeper
+- [n] kind login screen: can we store the last logged in kids in a cookie? and only show the tile when it is stored, otherwise just (nick)name field, problem is, b
+
+test kind-naam unique-ness? if this app becomes popular, we have a user challange anyway, what if we add /[grouptag] to the URL (user admin can add group as e.g. schoolnaam_klasX "de_fonkel_5a")
