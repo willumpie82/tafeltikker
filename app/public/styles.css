@@ -369,6 +369,16 @@ h1 {
     column-gap: 12px;
   }
 
+  /* Same bug class this project has hit before: an ID selector setting
+     `display` unconditionally beats the browser's built-in
+     `[hidden] { display: none }` regardless of source order, so without
+     this override the exercise view stayed visible (stacked underneath
+     the home screen) after clicking back once the viewport matched this
+     breakpoint. */
+  #view-math-exercise[hidden] {
+    display: none;
+  }
+
   #math-exercise-back {
     position: static;
     flex: 0 0 auto;
@@ -413,8 +423,17 @@ h1 {
   }
 
   #math-question {
-    margin-top: 8px;
+    margin-top: 32px;
     margin-bottom: 12px;
+  }
+
+  /* The checklist cells stretch to fill the column's width (`flex: 1` on
+     each cell) — fine at the narrower 280px column this was designed for,
+     but this column is now the wide, flexible one, which blew the cells up
+     much larger than anywhere else they're used. Cap the row so cells stay
+     a reasonable, consistent size. */
+  .math-hints-col .table-progress-row {
+    max-width: 420px;
   }
 
   /* Per the ipad mockup, the two columns don't just swap sides — they group
