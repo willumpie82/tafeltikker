@@ -132,8 +132,15 @@ open group-creation spam surface).
 
 For v1, **invite-link is the only join path** — a dashboard-visible
 accept/decline card for parents who already have an account is real but
-explicitly deferred (see below), since invite-link alone already covers
-both the new- and existing-parent cases.
+explicitly deferred (see below). It's not just that invite-link alone
+already covers both the new- and existing-parent cases — inviting-by-
+username would require the group admin to know or look up *which account*
+belongs to a given parent, which they shouldn't need to know or have
+visibility into at all. Invite-link needs none of that: the group admin
+just generates a link scoped to a child's name and hands it out (however
+suits them), and the system works out whether that's a new or existing
+parent entirely at accept-time, with zero extra thought or lookup required
+from the admin.
 
 The design gap an earlier pass missed: an invite only got a parent
 *account* linked to a group, with nothing ensuring a *child* ends up
