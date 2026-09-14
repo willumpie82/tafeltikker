@@ -95,8 +95,10 @@ Currently deployed as a Debian 13 LXC on Proxmox (unprivileged, 1 vCPU /
 though the app itself runs comfortably lighter; `better-sqlite3` requires
 Node ≥22, not the ≥20 this repo's `package.json` currently declares).
 
-- `git clone --branch dev` into `/opt/tafeltikker/app`, `npm ci && npm run build`
-  as a dedicated non-root `tafeltikker` user.
+- `git clone --branch main` into `/opt/tafeltikker/app`, `npm ci && npm run build`
+  as a dedicated non-root `tafeltikker` user. `main` is the deployed branch —
+  `dev` is where work happens; merge (fast-forward) into `main` when it's
+  ready to ship.
 - `.env` (mode 600) with real, persistent `CHILD_SESSION_KEY`/
   `PARENT_SESSION_KEY` and a real admin password — never the docs' example
   values once anyone outside your own household can reach the instance.
