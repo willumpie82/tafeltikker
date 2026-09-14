@@ -175,3 +175,56 @@ export const parentInvites = sqliteTable("parent_invites", {
   usedAt: text("used_at"),
   createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
 });
+
+export const groups = sqliteTable("groups", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  // "klas geheim" — hashed like a PIN via hashSecret(), never stored/
+  // returned plaintext after creation.
+  secretHash: text("secret_hash").notNull(),
+  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
+});
+
+export const groupAdmins = sqliteTable(
+  "group_admins",
+  {
+    groupId: integer("group_id")
+      .notNull()
+      .references(() => groups.id),
+    parentId: integer("parent_id")
+      .notNull()
+      .references(() => parents.id),
+  },
+  (table) => [primaryKey({ columns: [table.groupId, table.parentId] })],
+);
+
+export const groupChildren = sqliteTable(
+  "group_children",
+  {
+    groupId: integer("group_id")
+      .notNull()
+      .references(() => groups.id),
+    childId: integer("child_id")
+      .notNull()
+      .references(() => children.id),
+  },
+  (table) => [primaryKey({ columns: [table.groupId, table.childId] })],
+);
+
+export const groupInvites = sqliteTable("group_invites", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  groupId: integer("group_id")
+    .notNull()
+    .references(() => groups.id),
+  // As the group admin typed it, before any match/confirm.
+  childName: text("child_name").notNull(),
+  token: text("token").notNull().unique(),
+  createdBy: integer("created_by")
+    .notNull()
+    .references(() => parents.id),
+  expiresAt: text("expires_at").notNull(),
+  usedBy: integer("used_by").references(() => parents.id),
+  usedAt: text("used_at"),
+  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
+});
