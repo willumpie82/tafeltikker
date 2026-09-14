@@ -88,6 +88,20 @@ const landscapeColumnsQuery = window.matchMedia("(min-width: 900px) and (orienta
 function applyLandscapeColumnGrouping(isLandscape: boolean): void {
   const target = isLandscape ? hintsColEl : answerAreaEl;
   target.prepend(questionEl, tryTimerEl);
+
+  // On a tablet there isn't room to give "Volgende" a whole extra row below
+  // the keypad without pushing it past the bottom of the screen (it only
+  // appears once a question's answered, so this was easy to miss testing a
+  // fresh session) — the user's follow-up mockup puts it beside the confirm
+  // button instead. Moved here rather than reassigned via CSS grid
+  // placement for the same cross-browser reason as the question/checklist
+  // above. buildMathPad() below re-does this on every question, since it
+  // fully rebuilds #math-pad's contents (wiping anything appended to it).
+  if (isLandscape) {
+    mathPadEl.appendChild(nextButtonEl);
+  } else {
+    mathPadEl.after(nextButtonEl);
+  }
 }
 
 applyLandscapeColumnGrouping(landscapeColumnsQuery.matches);
@@ -667,6 +681,12 @@ function buildMathPad() {
   submitButton.className = "submit-button";
   submitButton.addEventListener("click", submitAnswer);
   mathPadEl.appendChild(submitButton);
+
+  // innerHTML = "" above just wiped out #math-next-button too, if the
+  // landscape layout had it living in here (see applyLandscapeColumnGrouping).
+  if (landscapeColumnsQuery.matches) {
+    mathPadEl.appendChild(nextButtonEl);
+  }
 }
 
 async function finishSession(outcome: { status: "completed" | "aborted"; completedCount: number; score?: number }) {

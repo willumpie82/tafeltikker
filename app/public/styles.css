@@ -471,6 +471,38 @@ h1 {
   .math-answer-area {
     flex: 0 0 320px;
   }
+
+  /* "Volgende" only appears once a question's answered, and giving it a
+     whole extra row below the keypad (its default, everywhere else) either
+     pushed it past the bottom of the screen or forced yet more padding to
+     make room. Per the user's tablet-specific mockup, it instead lives
+     beside the confirm button — math.ts moves the actual #math-next-button
+     node into #math-pad's grid for this breakpoint (re-done after every
+     question, since #math-pad's contents get fully rebuilt each time), so
+     this just needs to fit the remaining column instead of spanning all 3
+     like the confirm button normally does. */
+  /* `.pin-pad` added to outrank the base (unscoped) `.submit-button` rule
+     below, which also sets `grid-column` at equal specificity and comes
+     later in the file — a plain `.submit-button` override here would lose
+     that tie despite being inside the more specific media query. */
+  .pin-pad .submit-button {
+    grid-column: span 2;
+  }
+
+  .pin-pad #math-next-button {
+    grid-column: span 1;
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    font-size: 1.5rem;
+  }
+
+  /* No room for the word next to the confirm button — the arrow alone
+     (kept in the DOM either way) says the same thing at this size. */
+  .pin-pad #math-next-button .next-label-text {
+    display: none;
+  }
 }
 
 .answer-display {
