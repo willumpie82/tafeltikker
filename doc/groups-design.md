@@ -183,6 +183,7 @@ rather than asking the parent to self-identify from scratch.
 6. **Success screen states plainly what happened** (e.g. "Tim is
    toegevoegd aan De Fonkel 5A") rather than silently landing on the
    dashboard.
+7. [**new**] the parent can see to what group(s) the kid is assigned (=transparancy) is theire dashboard. not sure if parent can manage those subscriptions
 
 ## Data model
 
@@ -214,6 +215,13 @@ building:
   (both already flagged as deferred in `challenge-module-design.md`,
   pending this doc) — become buildable once group membership exists, but
   the actual UI/rules aren't designed yet.
+- [**new**] group-admin dashboard ui design
+    - one group admin can have multiple groups, or one group can have multiple group-admins (e.g. stand-in teacher, flow TBD)
+    - collabsable table per group (if multiple)
+    - add button on top of a group table
+    - remove button behind each member
+    - invite state pending display Tim (invited)
+    - per group challange (as per kid dashboard)
 
 **Decided against, not just deferred:** a dashboard-visible accept/decline
 card as a second join path for already-registered parents. Beyond
