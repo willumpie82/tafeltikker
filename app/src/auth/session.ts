@@ -6,11 +6,13 @@ import type { FastifyInstance } from "fastify";
 
 export type ChildSessionData = { childId: number };
 export type ParentSessionData = { parentId: number };
+export type GroupTrustSessionData = { trustedGroupIds: number[] };
 
 declare module "fastify" {
   interface FastifyRequest {
     childSession: Session<ChildSessionData>;
     parentSession: Session<ParentSessionData>;
+    groupTrust: Session<GroupTrustSessionData>;
   }
 }
 
@@ -47,6 +49,13 @@ export default fp(async function sessionPlugin(app: FastifyInstance) {
       cookieName: "parent_session",
       key: resolveKey("PARENT_SESSION_KEY"),
       expiry: 12 * 60 * 60, // 12 hours
+      cookie: { path: "/", httpOnly: true, sameSite: "lax", secure: cookieSecure },
+    },
+    {
+      sessionName: "groupTrust",
+      cookieName: "group_trust",
+      key: resolveKey("GROUP_TRUST_KEY"),
+      expiry: 180 * 24 * 60 * 60, // 180 days
       cookie: { path: "/", httpOnly: true, sameSite: "lax", secure: cookieSecure },
     },
   ]);
