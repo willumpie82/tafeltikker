@@ -369,9 +369,11 @@ h1 {
     column-gap: 12px;
     /* #app's max-width above leaves it nearly edge-to-edge on a landscape
        tablet, so without this the keypad/confirm button sit flush against
-       the right edge — overlapping the fixed #parent-icon gear button — and
-       the checklist sits flush against the left edge. */
-    padding: 0 20px;
+       the right edge and bottom — overlapping the fixed #parent-icon gear
+       button in the corner — and the checklist sits flush against the
+       left edge. The extra bottom padding clears the gear button's own
+       ~48px footprint (12px offset + 36px size) from that corner. */
+    padding: 0 32px 60px;
   }
 
   /* Same bug class this project has hit before: an ID selector setting
