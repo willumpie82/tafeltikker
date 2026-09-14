@@ -71,6 +71,28 @@ let durationRemainingSeconds = 0;
 let idleTimeoutId: number | undefined;
 let isPaused = false;
 
+// In landscape (tablets sideways, laptops/desktops), the question and the
+// table checklist belong together in the left column, while the keypad
+// stays alone in the right column — a different grouping than the
+// portrait/narrow-desktop layout (checklist left, everything else right).
+// That regrouping is done by physically moving these two elements between
+// the two column containers, rather than with CSS alone (grid-column
+// placement combined with display:contents on a dissolved wrapper hit real
+// Safari/WebKit rendering bugs — the two columns didn't align to the same
+// row despite identical grid-row values), so it's guaranteed to render
+// identically on every engine.
+const hintsColEl = document.querySelector(".math-hints-col")!;
+const answerAreaEl = document.querySelector(".math-answer-area")!;
+const landscapeColumnsQuery = window.matchMedia("(min-width: 900px) and (orientation: landscape)");
+
+function applyLandscapeColumnGrouping(isLandscape: boolean): void {
+  const target = isLandscape ? hintsColEl : answerAreaEl;
+  target.prepend(questionEl, tryTimerEl);
+}
+
+applyLandscapeColumnGrouping(landscapeColumnsQuery.matches);
+landscapeColumnsQuery.addEventListener("change", (event) => applyLandscapeColumnGrouping(event.matches));
+
 function comboKey(table: number, multiplier: number): string {
   return `${table}x${multiplier}`;
 }

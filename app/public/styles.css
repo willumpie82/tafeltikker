@@ -403,6 +403,15 @@ h1 {
      The default <h1> margins (sized off the 20px root font) ate ~60px of
      height here for no visual benefit, which pushed total content past the
      viewport height and made "safe center" clip the top of the layout. */
+  #math-question,
+  #math-try-timer {
+    /* Both are moved into .math-hints-col below (see math.ts), which
+       (unlike .math-answer-area) doesn't already center its content —
+       keep them centered like they've always been rather than picking up
+       the checklist's left alignment. */
+    text-align: center;
+  }
+
   #math-question {
     margin-top: 8px;
     margin-bottom: 12px;
@@ -411,64 +420,30 @@ h1 {
   /* Per the ipad mockup, the two columns don't just swap sides — they group
      differently: the question and the table checklist belong together on
      the left (both are "about the current exercise/table"), while the
-     keypad and its next button stand alone on the right. That grouping
-     cuts across the existing hints-col/answer-area markup split, so
-     dissolve the answer-area wrapper (keeping it in the DOM for
-     inheritance/JS, just not as a box) and place its children directly as
-     grid items instead.
-
-     Row numbers are assigned explicitly (not left to auto-placement).
-     The checklist (.math-hints-col) deliberately shares a row with the
-     keypad rather than getting a row of its own after it: an earlier
-     attempt gave the checklist the *next* row after the keypad's, which
-     meant the checklist's start position (and therefore the whole
-     column's height) depended on the keypad's ~460px height, pushing the
-     keypad's bottom (and its confirm button) below the viewport. Sharing
-     one row means the row is sized to whichever side is taller (almost
-     always the keypad) and the checklist simply renders top-aligned
-     within that space — it can grow a fair way (e.g. when a hint appears)
-     before it would ever start affecting the keypad's position. */
-  .math-body {
-    display: grid;
-    grid-template-columns: 1fr 320px;
-    column-gap: 24px;
-    align-items: start;
+     keypad and its next button stand alone on the right. #math-question
+     and #math-try-timer are physically moved into .math-hints-col for this
+     breakpoint (see the matchMedia listener in math.ts) rather than
+     reassigned via CSS grid-column/grid-row on a dissolved (display:
+     contents) wrapper — that approach hit a real Safari/WebKit rendering
+     bug where two grid items given the identical grid-row still didn't
+     align to the same row, so the checklist appeared far below the keypad
+     on an actual iPad even though it rendered correctly in both Chromium
+     and Playwright's bundled WebKit. Moving the real DOM nodes means both
+     columns are back to being plain, independent flex boxes — the same
+     mechanism this two-column layout already used successfully before the
+     ipad-landscape work started — so there's no cross-browser grid
+     placement subtlety left to get wrong. With the question now living
+     inside .math-hints-col, the existing order:1 (hints-col, left) /
+     order:2 (answer-area, right) from the plain ≥900px rule above already
+     puts it on the correct side — only the column widths need to flip,
+     since the left column now needs to be the flexible/wide one (question
+     + checklist) and the right column the narrow, fixed one (keypad). */
+  .math-hints-col {
+    flex: 1;
   }
 
   .math-answer-area {
-    display: contents;
-  }
-
-  #math-question {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  #math-try-timer {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  #math-options,
-  #math-answer-display {
-    grid-column: 2;
-    grid-row: 2;
-  }
-
-  .math-hints-col,
-  #math-pad {
-    grid-column: 1;
-    grid-row: 3;
-  }
-
-  #math-pad {
-    grid-column: 2;
-  }
-
-  #math-next-button,
-  #math-next-hint {
-    grid-column: 2;
-    grid-row: 4;
+    flex: 0 0 320px;
   }
 }
 
