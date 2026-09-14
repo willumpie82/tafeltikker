@@ -19,3 +19,9 @@ calc:
 
 challange:
 - [n] archive a challange (e.g. the kid has earned his reward)
+- [n] speed + confidence challange (no on 'moeilijk' the timer is 8s), let the parent set the target speed
+- [n] in hard mode, when the time expires, the same test repeats 3x (same as multiple choice, but kid has now practically 24s per test)
+
+
+landscape:
+- [n] layout still suboptimal

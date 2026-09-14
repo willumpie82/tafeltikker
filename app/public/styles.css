@@ -12,6 +12,14 @@
   box-sizing: border-box;
 }
 
+button {
+  /* Without this, two fast taps on the same button (e.g. mashing the
+     numpad) get interpreted by the browser as a double-tap-to-zoom
+     gesture instead of two clicks — "manipulation" tells it to skip that
+     gesture and treat taps here as plain clicks/pans only. */
+  touch-action: manipulation;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
