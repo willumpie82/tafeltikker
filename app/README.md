@@ -90,54 +90,6 @@ npm start
 
 ## Deployment
 
-Currently deployed as a Debian 13 LXC on Proxmox (unprivileged, 1 vCPU /
-1GB RAM — `tsc` needs real headroom to compile, 512MB was not enough even
-though the app itself runs comfortably lighter; `better-sqlite3` requires
-Node ≥22, not the ≥20 this repo's `package.json` currently declares).
-
-- `git clone --branch main` into `/opt/tafeltikker/app`, `npm ci && npm run build`
-  as a dedicated non-root `tafeltikker` user. `main` is the deployed branch —
-  `dev` is where work happens; merge (fast-forward) into `main` when it's
-  ready to ship.
-- `.env` (mode 600) with real, persistent `CHILD_SESSION_KEY`/
-  `PARENT_SESSION_KEY` and a real admin password — never the docs' example
-  values once anyone outside your own household can reach the instance.
-- Run once after cloning/pulling: `npm run db:migrate`, `npm run db:seed`
-  (seed only does anything the very first time — see `SEED_PARENT_*` above).
-- `systemd` unit (`/etc/systemd/system/tafeltikker.service`, `EnvironmentFile=`
-  pointing at `.env`) so it survives reboots and restarts on crash:
-  ```ini
-  [Unit]
-  Description=Tafeltikker
-  After=network.target
-
-  [Service]
-  Type=simple
-  User=tafeltikker
-  WorkingDirectory=/opt/tafeltikker/app/app
-  ExecStart=/usr/bin/node dist/server.js
-  Restart=on-failure
-  RestartSec=5
-  EnvironmentFile=/opt/tafeltikker/app/app/.env
-
-  [Install]
-  WantedBy=multi-user.target
-  ```
-- Redeploying a new commit: `git pull`, `npm ci` (only if dependencies
-  changed), `npm run build`, `npm run db:migrate` (only if new migrations
-  exist), `systemctl restart tafeltikker`.
-
-### Going from LAN-only to a real HTTPS domain
-
-The app itself never terminates TLS — it expects a reverse proxy (e.g.
-nginx-proxy-manager) in front of it to do that, with Cloudflare (or
-similar) pointed at the proxy. Once that's actually working end to end:
-
-1. Set `PUBLIC_BASE_URL` (e.g. `https://tafeltikker.example.com`) so invite
-   links stop embedding the LAN address.
-2. Set `COOKIE_SECURE=true` and restart. Do this only *after* confirming
-   HTTPS works — turning it on first silently breaks login, since a
-   browser never sends a `Secure` cookie over plain HTTP.
-
-`trustProxy: true` is already on by default (harmless with no proxy in
-front), so `request.ip` reflects the real client once one exists.
+See [`infra/README.md`](../infra/README.md) — target environment, branch
+strategy, systemd unit, redeploy procedure, operating the Proxmox
+container, database backup discipline, and the HTTPS setup.

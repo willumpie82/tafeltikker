@@ -1,0 +1,15 @@
+[Unit]
+Description=Tafeltikker
+After=network.target
+
+[Service]
+Type=simple
+User=tafeltikker
+WorkingDirectory=/opt/tafeltikker/app/app
+ExecStart=/usr/bin/node dist/server.js
+Restart=on-failure
+RestartSec=5
+EnvironmentFile=/opt/tafeltikker/app/app/.env
+
+[Install]
+WantedBy=multi-user.target
