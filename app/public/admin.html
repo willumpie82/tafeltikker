@@ -23,6 +23,7 @@
         <button type="button" class="tab-button" data-tab="children">Kinderen</button>
         <button type="button" class="tab-button" data-tab="feedback">Feedback</button>
         <button type="button" class="tab-button" data-tab="invites">Uitnodigingen</button>
+        <button type="button" class="tab-button" data-tab="groups">Groepen</button>
       </nav>
 
       <section id="admin-tab-parents" class="admin-tab">
@@ -89,6 +90,34 @@
           <input type="text" id="invite-url" readonly />
         </div>
         <div id="invites-list" class="admin-list"></div>
+      </section>
+
+      <section id="admin-tab-groups" class="admin-tab" hidden>
+        <button type="button" id="add-group-button">+ Groep aanmaken</button>
+
+        <form id="add-group-form" class="child-form" hidden>
+          <h2>Nieuwe groep</h2>
+          <label>
+            Naam
+            <input type="text" id="new-group-name" required />
+          </label>
+          <label>
+            Slug (voor de link, bv. "klas4a")
+            <input type="text" id="new-group-slug" pattern="[a-z0-9_-]+" required />
+          </label>
+          <div class="form-actions">
+            <button type="submit">Aanmaken</button>
+            <button type="button" id="cancel-add-group">Annuleren</button>
+          </div>
+          <p id="add-group-error" class="error-text" hidden></p>
+        </form>
+
+        <div id="group-secret-result" class="invite-result" hidden>
+          <p>Klas-geheim (deel dit met de klas, dit wordt maar één keer getoond):</p>
+          <input type="text" id="group-secret-value" readonly />
+        </div>
+
+        <div id="groups-list" class="admin-list"></div>
       </section>
     </main>
 

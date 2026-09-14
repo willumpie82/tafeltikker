@@ -208,6 +208,13 @@ export const groupChildren = sqliteTable(
     childId: integer("child_id")
       .notNull()
       .references(() => children.id),
+    // Set when a *parent* removes their own child from the group (distinct
+    // from a group admin's roster removal, which hard-deletes the row
+    // instead) — lets the admin roster show "Tim (verwijderd door ouder)"
+    // rather than the child silently vanishing. Re-adding after this goes
+    // back through the full invite flow, not a simple undo, so this is
+    // never cleared once set.
+    removedAt: text("removed_at"),
   },
   (table) => [primaryKey({ columns: [table.groupId, table.childId] })],
 );

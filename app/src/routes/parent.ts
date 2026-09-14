@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { parents, children, parentChild, practiceSessions, mathAttempts, typingAttempts, feedback } from "../db/schema.js";
+import { parents, children, parentChild, practiceSessions, mathAttempts, typingAttempts, feedback, groupChildren } from "../db/schema.js";
 import { hashSecret, isValidPin, verifySecret } from "../auth/password.js";
 import { requireParentId } from "../auth/require.js";
 import { applyChildUpdate, deleteChild, InvalidPinError, NothingToUpdateError } from "./childUpdates.js";
@@ -254,6 +254,33 @@ export default async function parentRoutes(app: FastifyInstance) {
       perTypingLetter,
       recentSessions,
     };
+  });
+
+  // Soft-delete (removedAt), not a hard delete — lets the group's admin
+  // roster show "Tim (verwijderd door ouder)" instead of the child
+  // silently vanishing. Re-joining goes through the invite flow again,
+  // same as any new join.
+  app.delete<{ Params: { id: string; groupId: string } }>("/api/parent/children/:id/groups/:groupId", async (request, reply) => {
+    const parentId = requireParentId(request);
+    if (!parentId) return reply.code(401).send({ error: "not_authenticated" });
+
+    const childId = Number(request.params.id);
+    if (!(await assertOwnsChild(parentId, childId))) {
+      return reply.code(404).send({ error: "child_not_found" });
+    }
+
+    await db
+      .update(groupChildren)
+      .set({ removedAt: sql`(current_timestamp)` })
+      .where(
+        and(
+          eq(groupChildren.groupId, Number(request.params.groupId)),
+          eq(groupChildren.childId, childId),
+          isNull(groupChildren.removedAt),
+        ),
+      );
+
+    return { ok: true };
   });
 
   app.get("/api/parent/feedback", async (request, reply) => {

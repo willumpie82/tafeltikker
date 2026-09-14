@@ -1,0 +1,1 @@
+ALTER TABLE `group_children` ADD `removed_at` text;

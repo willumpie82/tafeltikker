@@ -12,6 +12,7 @@ import typingRoutes from "./routes/typing.js";
 import adminRoutes from "./routes/admin.js";
 import registerRoutes from "./routes/register.js";
 import challengesRoutes from "./routes/challenges.js";
+import groupRoutes from "./routes/groups.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -41,6 +42,7 @@ await app.register(typingRoutes);
 await app.register(adminRoutes);
 await app.register(registerRoutes);
 await app.register(challengesRoutes);
+await app.register(groupRoutes);
 
 app.get("/healthz", async () => ({ status: "ok", version }));
 

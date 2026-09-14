@@ -25,6 +25,13 @@ export async function loginAsParent(page: Page, username = PARENT_USERNAME, pass
   await page.waitForSelector(".child-card");
 }
 
+/** Logs in as the seeded system_admin and lands on the admin dashboard. */
+export async function loginAsAdmin(page: Page) {
+  await loginAsParent(page);
+  await page.goto("/admin.html");
+  await page.waitForSelector("#admin-app:not([hidden])");
+}
+
 /** Answers the current Makkelijk (multiple choice) math question correctly. */
 export async function answerMathQuestionCorrectly(page: Page) {
   await page.waitForSelector("#math-options button", { timeout: 5000 });

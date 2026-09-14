@@ -22,6 +22,8 @@ type InviteRow = {
   createdAt: string;
   status: "pending" | "used" | "expired";
 };
+type GroupRow = { id: number; slug: string; name: string; createdAt: string; memberCount: number };
+type GroupRosterChild = { id: number; name: string; avatarId: string; removedAt: string | null };
 
 const ROLE_LABELS: Record<Role, string> = {
   parent: "Ouder",
@@ -51,6 +53,7 @@ document.querySelectorAll<HTMLButtonElement>(".tab-button").forEach((button) => 
     else if (tab === "children") loadChildren();
     else if (tab === "feedback") loadFeedback();
     else if (tab === "invites") loadInvites();
+    else if (tab === "groups") loadGroups();
   });
 });
 
@@ -439,6 +442,126 @@ async function loadInvites() {
       ${invite.status === "pending" ? `<input type="text" readonly value="${invite.url}" class="invite-row-url" />` : ""}
     `;
     list.appendChild(row);
+  }
+}
+
+const addGroupButton = document.getElementById("add-group-button")!;
+const addGroupForm = document.getElementById("add-group-form") as HTMLFormElement;
+
+addGroupButton.addEventListener("click", () => {
+  addGroupForm.hidden = false;
+  addGroupButton.hidden = true;
+});
+
+document.getElementById("cancel-add-group")!.addEventListener("click", () => {
+  addGroupForm.hidden = true;
+  addGroupButton.hidden = false;
+  addGroupForm.reset();
+});
+
+addGroupForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const name = (document.getElementById("new-group-name") as HTMLInputElement).value;
+  const slug = (document.getElementById("new-group-slug") as HTMLInputElement).value;
+  const errorEl = document.getElementById("add-group-error")!;
+
+  const res = await fetch("/api/admin/groups", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, slug }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    errorEl.textContent = body.error === "slug_taken" ? "Deze slug is al in gebruik." : "Vul alle velden goed in.";
+    errorEl.hidden = false;
+    return;
+  }
+
+  errorEl.hidden = true;
+  const { secret } = await res.json();
+  const resultEl = document.getElementById("group-secret-result")!;
+  (document.getElementById("group-secret-value") as HTMLInputElement).value = secret;
+  resultEl.hidden = false;
+
+  addGroupForm.reset();
+  addGroupForm.hidden = true;
+  addGroupButton.hidden = false;
+  await loadGroups();
+});
+
+async function loadGroups() {
+  const res = await fetch("/api/admin/groups");
+  const list = document.getElementById("groups-list")!;
+  list.innerHTML = "";
+  if (!res.ok) return;
+
+  const rows: GroupRow[] = await res.json();
+  for (const group of rows) {
+    list.appendChild(renderGroupRow(group));
+  }
+}
+
+function renderGroupRow(group: GroupRow): HTMLElement {
+  const row = document.createElement("div");
+  row.className = "admin-row";
+  row.innerHTML = `
+    <div class="admin-row-header">
+      <span class="name">${group.name}</span>
+      <span class="admin-row-meta">/${group.slug} · ${group.memberCount} kind(eren)</span>
+      <button type="button" class="group-roster-toggle">Bekijk rooster</button>
+    </div>
+  `;
+
+  const toggle = row.querySelector(".group-roster-toggle")!;
+  let rosterEl: HTMLElement | null = null;
+
+  toggle.addEventListener("click", async () => {
+    if (rosterEl) {
+      rosterEl.remove();
+      rosterEl = null;
+      return;
+    }
+    rosterEl = document.createElement("div");
+    row.appendChild(rosterEl);
+    await renderGroupRoster(rosterEl, group);
+  });
+
+  return row;
+}
+
+async function renderGroupRoster(container: HTMLElement, group: GroupRow) {
+  container.innerHTML = "";
+  const res = await fetch(`/api/admin/groups/${group.slug}/roster`);
+  if (!res.ok) return;
+
+  const { roster }: { roster: GroupRosterChild[] } = await res.json();
+  if (roster.length === 0) {
+    container.innerHTML = `<p class="no-data">Nog geen kinderen in deze groep.</p>`;
+    return;
+  }
+
+  for (const child of roster) {
+    const childRow = document.createElement("div");
+    childRow.className = "admin-row";
+    childRow.innerHTML = `
+      <div class="admin-row-header">
+        <span>${emojiFor(child.avatarId)}</span>
+        <span class="name">${child.name}${child.removedAt ? " (verwijderd door ouder)" : ""}</span>
+      </div>
+    `;
+    if (!child.removedAt) {
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.textContent = "Verwijderen uit groep";
+      removeButton.addEventListener("click", async () => {
+        await fetch(`/api/admin/groups/${group.id}/children/${child.id}`, { method: "DELETE" });
+        await renderGroupRoster(container, group);
+        await loadGroups();
+      });
+      childRow.querySelector(".admin-row-header")!.appendChild(removeButton);
+    }
+    container.appendChild(childRow);
   }
 }
 
