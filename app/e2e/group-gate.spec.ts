@@ -55,8 +55,14 @@ test.describe.serial("group gate", () => {
     await expect(page.locator("#view-avatars")).toBeHidden();
   });
 
-  test("an unknown slug shows a not-found state instead of the gate", async ({ page }) => {
-    await page.goto("/nosuchgroup");
+  test("an unknown slug shows a not-found state instead of the gate, with a real 404 and no-store", async ({ page }) => {
+    // The rendered content alone doesn't prove the status/headers are
+    // right — @fastify/send silently overwrote a plain reply.header()
+    // Cache-Control here once already (fixed via sendFile's own
+    // cacheControl:false option), so assert on the response directly.
+    const response = await page.goto("/nosuchgroup");
+    expect(response?.status()).toBe(404);
+    expect(response?.headers()["cache-control"]).toBe("no-store");
     await page.waitForSelector("#view-group-not-found:not([hidden])");
   });
 

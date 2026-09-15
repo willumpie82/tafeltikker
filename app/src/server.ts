@@ -74,7 +74,11 @@ app.get<{ Params: { slug: string } }>("/:slug", async (request, reply) => {
     // server-side data (does this group exist right now), so a stale
     // cached copy — especially via back/forward-cache navigation, which
     // ignores max-age entirely — must never stand in for a fresh check.
-    return reply.header("Cache-Control", "no-store").code(404).sendFile("index.html");
+    // cacheControl: false is required — @fastify/send unconditionally
+    // sets its own Cache-Control header when serving the file, which
+    // would otherwise silently overwrite a plain reply.header() call.
+    reply.header("Cache-Control", "no-store");
+    return reply.code(404).sendFile("index.html", { cacheControl: false });
   }
 
   return reply.sendFile("index.html"); // client reads location.pathname itself

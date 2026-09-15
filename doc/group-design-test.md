@@ -158,14 +158,14 @@ above plus everything logged as `[new]` in `groups-design.md` (now tagged
 - [ ] Cannot promote a parent to group-admin of an existing group — this
       is a known, already-deferred gap (#281), not something to test;
       listed here only so it isn't mistaken for new.
-- [ ] The avatar tile grid (both `/` and a group's `/<slug>`) shows
+- [x] The avatar tile grid (both `/` and a group's `/<slug>`) shows
       uniformly square tiles in a centered, wrapped layout — a single
       child (or a small handful) sits as a centered row instead of
       stretching to fill the full width (#282).
-- [ ] Opening an invite link **while already logged in** as a parent
+- [x] Opening an invite link **while already logged in** as a parent
       shows an explicit "Je bent ingelogd als X — doorgaan, of uitloggen
       en opnieuw?" step, instead of silently landing on Stap 2 (#283).
-- [ ] A persistent Ouder/Kind/Klaar progress indicator is visible across
+- [x] A persistent Ouder/Kind/Klaar progress indicator is visible across
       Stap 1, Stap 2, and the success screen, with the current step
       highlighted (#283).
 - [ ] Choosing "Nee, uitloggen en opnieuw" on that already-logged-in step
@@ -178,17 +178,18 @@ above plus everything logged as `[new]` in `groups-design.md` (now tagged
       shown afterward must still be that same group's scoped roster
       (same tile count as the admin page), never the full unscoped list
       of every child in the database (#284).
-- [ ] **404 on a wrong slug, round 2**: visit a slug that has never been
+- [ ] **404 on a wrong slug, round 3**: visit a slug that has never been
       valid, confirm via devtools Network tab that the request itself
-      returns 404 (not just that a "niet gevonden" message renders).
-      If you still don't see one, try it in an incognito/private window
-      or after a hard refresh (Cmd/Ctrl+Shift+R) first — the prior
-      investigation found the server correctly 404s on a fresh request
-      even with a matching cache validator, so a repeat failure only via
-      normal back/forward browser navigation would be expected (browsers'
-      back/forward-cache bypasses HTTP caching rules entirely); a failure
-      on a **fresh** visit would be a real, different bug worth reporting
-      with exact repro steps (#285).
+      returns 404 with `Cache-Control: no-store` — **the friendly "Groep
+      niet gevonden" page rendering is not itself evidence either way**,
+      that content always renders regardless of status code; you have to
+      check the Network tab's status/headers, not the page body. A real
+      bug was found and fixed here since the last round: the no-store
+      header from round 2 silently never took effect (`@fastify/send`
+      was overwriting it), so if you tested this in round 2 and saw
+      "cache-control: public, max-age=0" in devtools, that's exactly why
+      — now fixed and covered by a direct assertion in
+      `e2e/group-gate.spec.ts` (#285).
 
 ## Known gaps — not built yet, don't test
 - **Step 7 (roster polish)**: collapsible per-group sections when an
