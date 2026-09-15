@@ -231,3 +231,69 @@
   font-size: 0.85rem;
   padding: 6px 12px;
 }
+
+.group-name-toggle {
+  cursor: pointer;
+}
+
+.group-slug-tag {
+  font-weight: normal;
+  color: #888;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.group-slug-tag:hover {
+  text-decoration: underline;
+  color: var(--accent);
+}
+
+.group-secret-section {
+  margin: 12px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.group-secret-reveal {
+  margin-top: 10px;
+  background: white;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.group-secret-reveal input {
+  width: 100%;
+  margin-top: 6px;
+  font-family: monospace;
+  font-size: 0.95rem;
+}
+
+.secret-warning {
+  font-size: 0.8rem;
+  color: #8c6d1f;
+  margin-bottom: 0;
+}
+
+.admin-row.newly-created {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px #d0ebff;
+}
+
+.field-help-toggle {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.8rem;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.field-help-text {
+  font-size: 0.85rem;
+  color: #555;
+  background: #f4f5f7;
+  border-radius: 6px;
+  padding: 8px 10px;
+}

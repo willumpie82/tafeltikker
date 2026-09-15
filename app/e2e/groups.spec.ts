@@ -8,13 +8,20 @@ test("admin can create a group and see the klas-geheim exactly once", async ({ p
   await page.click("#add-group-button");
   await page.fill("#new-group-name", "Klas 4A");
   await page.fill("#new-group-slug", "klas4a");
-  await page.click("#add-group-form button[type=submit]");
-
-  await page.waitForSelector("#group-secret-result:not([hidden])");
-  const secret = await page.inputValue("#group-secret-value");
+  const [response] = await Promise.all([
+    page.waitForResponse((res) => res.url().includes("/api/admin/groups") && res.request().method() === "POST"),
+    page.click("#add-group-form button[type=submit]"),
+  ]);
+  const { secret } = await response.json();
   expect(secret.length).toBeGreaterThan(0);
 
-  await expect(page.locator(".admin-row .name", { hasText: "Klas 4A" })).toBeVisible();
+  // The secret reveal lands inline on this group's own (now auto-opened)
+  // roster panel, clearly tied to which group it belongs to — not a
+  // generic panel disconnected from context.
+  const groupRow = page.locator(".admin-row", { has: page.locator(".name", { hasText: "Klas 4A" }) });
+  await expect(groupRow.locator(".group-secret-reveal")).toBeVisible();
+  await expect(groupRow.locator(".group-secret-reveal-value")).toHaveValue(secret);
+  await expect(groupRow.locator(".group-secret-reveal")).toContainText("Klas 4A");
 });
 
 test("a duplicate group slug is rejected", async ({ page }) => {
@@ -41,6 +48,7 @@ test("removing a child from a group's roster doesn't touch the child's account o
   await groupRow.locator(".group-roster-toggle").click();
   await expect(groupRow.locator(".group-roster-list .name", { hasText: "Sam" })).toBeVisible();
 
+  page.once("dialog", (dialog) => dialog.accept());
   await groupRow.getByRole("button", { name: "Verwijderen uit groep" }).click();
   // Removal reloads the whole tab (collapsing the roster panel back to
   // closed) — reopen it to confirm Sam is genuinely gone, not just hidden.
@@ -63,14 +71,16 @@ test("admin creates a group invite and sees the link with the child's name attac
   await groupRow.locator(".group-roster-toggle").click();
 
   await groupRow.locator(".group-invite-child-name").fill("Tim");
-  await groupRow.locator(".group-invite-form button[type=submit]").click();
-
-  await expect(groupRow.locator(".group-invite-result")).toBeVisible();
-  await expect(groupRow.locator(".group-invite-result-name")).toHaveText("Tim");
-  const url = await groupRow.locator(".group-invite-result-url").inputValue();
+  const [response] = await Promise.all([
+    page.waitForResponse((res) => res.url().includes("/invites") && res.request().method() === "POST"),
+    groupRow.locator(".group-invite-form button[type=submit]").click(),
+  ]);
+  const { url } = await response.json();
   expect(url).toContain("/group-invite.html?token=");
 
-  // List shows the correctly-derived (never-stored) pending status.
-  await expect(groupRow.locator(".group-invites-list .admin-row", { hasText: "Tim" })).toBeVisible();
-  await expect(groupRow.locator(".group-invites-list .status-badge")).toHaveText("In afwachting");
+  // Shown once, in the list — highlighted as newly created — rather than
+  // duplicated in a separate reveal box above it.
+  const newInviteRow = groupRow.locator(".group-invites-list .admin-row.newly-created", { hasText: "Tim" });
+  await expect(newInviteRow).toBeVisible();
+  await expect(newInviteRow.locator(".status-badge")).toHaveText("In afwachting");
 });

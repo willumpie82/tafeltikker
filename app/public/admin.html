@@ -103,19 +103,21 @@
           </label>
           <label>
             Slug (voor de link, bv. "klas4a")
-            <input type="text" id="new-group-slug" pattern="[a-z0-9_-]+" required />
+            <input type="text" id="new-group-slug" pattern="[a-z0-9_\-]+" required />
+            <small>Alleen kleine letters, cijfers, "-" en "_".</small>
           </label>
+          <button type="button" id="group-slug-help-toggle" class="field-help-toggle">? Wat is een slug?</button>
+          <p id="group-slug-help" class="field-help-text" hidden>
+            De slug bepaalt het webadres van deze groep, bijvoorbeeld
+            tafeltikker.jouwdomein.nl/klas4a. Kinderen en ouders gebruiken
+            die link om bij deze groep in te loggen.
+          </p>
           <div class="form-actions">
             <button type="submit">Aanmaken</button>
             <button type="button" id="cancel-add-group">Annuleren</button>
           </div>
           <p id="add-group-error" class="error-text" hidden></p>
         </form>
-
-        <div id="group-secret-result" class="invite-result" hidden>
-          <p>Klas-geheim (deel dit met de klas, dit wordt maar één keer getoond):</p>
-          <input type="text" id="group-secret-value" readonly />
-        </div>
 
         <div id="groups-list" class="admin-list"></div>
       </section>

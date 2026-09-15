@@ -3,10 +3,10 @@ import { showView } from "./views.js";
 type Avatar = { id: number; name: string; avatarId: string };
 
 let currentSlug = "";
-let onUnlocked: ((avatars: Avatar[]) => void) | null = null;
+let onUnlocked: ((groupName: string, avatars: Avatar[]) => void) | null = null;
 
 /** Registers what happens once either gate path succeeds — main.ts renders the roster. */
-export function initGroupGate(onUnlockedCallback: (avatars: Avatar[]) => void) {
+export function initGroupGate(onUnlockedCallback: (groupName: string, avatars: Avatar[]) => void) {
   onUnlocked = onUnlockedCallback;
 }
 
@@ -43,7 +43,8 @@ document.getElementById("group-gate-secret-form")!.addEventListener("submit", as
   }
 
   errorEl.hidden = true;
-  onUnlocked?.(await res.json());
+  const { groupName, avatars } = await res.json();
+  onUnlocked?.(groupName, avatars);
 });
 
 document.getElementById("group-gate-parent-form")!.addEventListener("submit", async (event) => {
@@ -69,5 +70,6 @@ document.getElementById("group-gate-parent-form")!.addEventListener("submit", as
   }
 
   errorEl.hidden = true;
-  onUnlocked?.(await res.json());
+  const { groupName, avatars } = await res.json();
+  onUnlocked?.(groupName, avatars);
 });

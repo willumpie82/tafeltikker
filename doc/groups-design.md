@@ -215,13 +215,14 @@ building:
   (both already flagged as deferred in `challenge-module-design.md`,
   pending this doc) — become buildable once group membership exists, but
   the actual UI/rules aren't designed yet.
-- [**new**] group-admin dashboard ui design
+- [#218] group-admin dashboard ui design
     - one group admin can have multiple groups, or one group can have multiple group-admins (e.g. stand-in teacher, flow TBD)
     - collabsable table per group (if multiple)
     - add button on top of a group table
     - remove button behind each member
     - invite state pending display Tim (invited)
     - per group challange (as per kid dashboard)
+  — **OPEN**: this is step 7 of `groups-design-plan.md` (roster polish), not yet built. Multi-admin-per-group and per-group challenges stay explicitly deferred beyond that, same as noted above.
 
 **Decided against, not just deferred:** a dashboard-visible accept/decline
 card as a second join path for already-registered parents. Beyond
@@ -229,3 +230,44 @@ invite-link alone already covering both cases, inviting-by-username would
 require the group admin to know or look up which account belongs to a
 given parent — real extra thought/lookup for no benefit invite-link doesn't
 already provide.
+
+
+## New requirements:
+- [#235] the group secret should be remain visible to the group-admin(s) that have access to it, maybe use an '*' field with a 'laat geheim zien' button. The way the secret is show is also confusing when multiple groups exist, visually the field/block is not part of a group and doesn;t show what group it belongs to, the show/reveal button on the group block will solve this
+  — **RESOLVED, decided against full reveal**: kept the hash-only "shown once" security model rather than making the secret recoverable — reversible storage would mean a DB leak exposes every group's live secret. Instead: the reveal now happens inline on that group's own row (no more disconnected panel), with "Bewaar deze code goed" copy, plus a one-click "Regenereer geheim" (with a confirm warning that the old one stops working) for the forgot-it case.
+- [#236] edit/remove/disable group on admin page, group-admin can only enable/disable group or update name (not slug). sys-admin can edit/remove/enable/disable/rename (incl slug)
+  — **OPEN**: real scope (active/disabled state + role-split PATCH/DELETE endpoints), not part of this pass.
+- [#237] now the /slug is shown next to the x kinderen /bekijk rooster button, lets move that to the left side as part of the name e.g. NAME (base-url/slug), makes it easier to copy,and make it a link to the group landing page
+  — **RESOLVED**: slug now sits right after the name as a clickable link to that group's actual page (opens in a new tab).
+- [#238] the name and slug field can be confusing, should we add e.g. a "?" behind the field, when clicked explaining what it does, e.g. show the URL style**
+  — **RESOLVED**: added a "? Wat is een slug?" toggle under the slug field on the create-group form.
+- [#239] a group with the same name can be created unless the slug is identical, moving the slug as part of the group-box title can fix the unclarity it creates when multiple same names exist
+  — **RESOLVED**: same fix as #237 — the slug is now always visible next to the name.
+- [#240] the error when an invalid slug is entered is confusing (not pointing to the slug), generate proper error message (e.g. the slug requirements)
+  — **RESOLVED**: specific inline message naming the character rule, plus a helper line under the field itself. Also fixed a real bug found along the way: the slug input's HTML `pattern` attribute was an invalid regex under newer browsers' Unicode-mode pattern matching (unescaped `-`), silently disabling native validation.
+- [#241] when creating group-ivite, the invite is shown twice, once "Deel deze link met de ouder van tim:" and other "tim: \n verloopt... \n link, 
+  — **RESOLVED**: removed the separate reveal box for group invites; the new invite is now just highlighted in the list where its link already lives.
+- [#242] make sure all links shown include base-url
+  — **RESOLVED, real bug**: `baseUrl()` used `??`, which doesn't fall back on an empty-string env value (`PUBLIC_BASE_URL=` in `.env` counts as "set") — every generated link was silently relative. Fixed to fall back on empty string too.
+- [#243] on the admin page make name of the group clickable to expand it
+  — **RESOLVED**: the name is now clickable, same action as the "Rooster beheren" button.
+- [#244] removal of a kid from a group should need confirmation
+  — **RESOLVED**: native confirm() before the roster-removal request fires.
+- [#245] cannot see the group membership of a kid on the parent dashboard (should also include "koppeling verwijderen", with confirmation)
+  — **OPEN**: this is step 8 of `groups-design-plan.md`, not yet built. The "koppeling verwijderen" backend endpoint already exists (`DELETE /api/parent/children/:id/groups/:groupId`, from step 3) — step 8 just needs to wire up the display + this button + a confirm, per this note.
+- [#246] showing group membership should include the name of the group-admin and group slug
+  — **OPEN**: folded into step 8's scope above — the read query will need to join through `group_admins` too.
+- [#247] the name "bekijk rooster" suggests that it will browse to the actual rooster iso managing it change name to "rooster management"
+  — **RESOLVED**: renamed to "Rooster beheren".
+- [#248] when an non-existing group is entered just repond with e.g. a 404, makes it less obvious for scrapers what the base-irl/whatever does
+  — **RESOLVED**: an unknown slug's page now returns an actual 404 status (previously always 200, with only the API underneath 404ing) — same friendly "niet gevonden" content, different status code.
+- [#249] on a group page show the group name on top, "welkom bij fonklel 5a, klik op je naam om door te gaan"
+  — **RESOLVED**: avatars/gate-unlock endpoints now return the group's name, shown as "Welkom bij {naam}, klik op je naam om door te gaan" above the tile grid.
+- [#250] on the group invite flow, new parent, new kid the suggested kid name shows "nieuw kind" iso "sjeng"
+  — **RESOLVED**: the new-child form heading and the manual-picker heading both now show the invite's actual child-name.
+- [#251] invite list: on a 20+ kid group this clutters the UI, hide them e.g. in a collapst field, so the group-admin can check the status, also add a 'delete' option to the group admin to clean-up the list
+  — **OPEN**: real scope (a delete-invite endpoint doesn't exist yet), left for step 7 alongside the rest of the roster-polish work.
+- [#252] I created an invite for pietje, opened the link as peter (existing parent), but now suggest to add sjeng (already kid of peter), if +nieuw... is clicked it is not obvious (same as prev comment) that pietje will be added
+  — **RESOLVED**: same fix as #250 — this was the manual-picker path specifically, now also shows the invite's child-name throughout Stap 2, not just at the very top.
+- [#253] I can create more than one 'sjeng' invites
+  — **By design, not a bug**: this is intentional — the design doc's own step 5 lets an admin create same-named invites (real classes have two kids with one first name), and the accept-time collision check (already built, step 6) is what catches it before two identical tiles land in one roster. Nothing prevents *creating* the duplicate up front on purpose.

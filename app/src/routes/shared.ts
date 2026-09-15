@@ -5,5 +5,8 @@
  * to load admin.html from (fine for LAN-only use, wrong once exposed).
  */
 export function baseUrl(request: { protocol: string; headers: { host?: string } }): string {
-  return process.env.PUBLIC_BASE_URL ?? `${request.protocol}://${request.headers.host}`;
+  // `||`, not `??` — an unset .env value still comes through as "" (empty
+  // string, not undefined), which `??` would treat as a deliberate value
+  // and use verbatim, silently turning every generated link relative.
+  return process.env.PUBLIC_BASE_URL || `${request.protocol}://${request.headers.host}`;
 }

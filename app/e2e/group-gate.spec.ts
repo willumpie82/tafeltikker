@@ -6,10 +6,10 @@ import { loginAsAdmin, PARENT_USERNAME, PARENT_PASSWORD } from "./helpers.js";
 // second visit while already logged in lands on the dashboard, not the
 // login form.
 //
-// Reads the secret off the network response rather than the DOM: after the
-// first group, #group-secret-result is already visible, so waiting on
-// ":not([hidden])" for a second group resolves immediately (it's already
-// true) instead of waiting for the new value to actually land.
+// Reads the secret off the network response rather than the DOM — the
+// secret reveal lives inside each group's own (initially collapsed)
+// roster panel, so waiting on a DOM element visible-state per group would
+// need to account for that instead of being a simple readonly-field read.
 async function createGroupViaAdmin(page: Page, name: string, slug: string): Promise<string> {
   await page.click(".tab-button[data-tab='groups']");
   await page.click("#add-group-button");

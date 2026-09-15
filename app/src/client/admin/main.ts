@@ -458,6 +458,7 @@ async function loadInvites() {
 
 const addGroupButton = document.getElementById("add-group-button")!;
 const addGroupForm = document.getElementById("add-group-form") as HTMLFormElement;
+const SLUG_PATTERN = /^[a-z0-9_-]+$/;
 
 addGroupButton.addEventListener("click", () => {
   addGroupForm.hidden = false;
@@ -470,11 +471,28 @@ document.getElementById("cancel-add-group")!.addEventListener("click", () => {
   addGroupForm.reset();
 });
 
+document.getElementById("group-slug-help-toggle")!.addEventListener("click", () => {
+  const helpEl = document.getElementById("group-slug-help")!;
+  helpEl.hidden = !helpEl.hidden;
+});
+
+// Reveal callbacks registered by renderGroupRow, keyed by group id, so the
+// post-creation flow below can show the new secret inline on that group's
+// own row instead of in a panel disconnected from which group it belongs
+// to — re-registered on every loadGroups() re-render.
+const revealSecretHandlers = new Map<number, (secret: string) => void>();
+
 addGroupForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const name = (document.getElementById("new-group-name") as HTMLInputElement).value;
   const slug = (document.getElementById("new-group-slug") as HTMLInputElement).value;
   const errorEl = document.getElementById("add-group-error")!;
+
+  if (!SLUG_PATTERN.test(slug)) {
+    errorEl.textContent = "Slug mag alleen kleine letters, cijfers, \"-\" en \"_\" bevatten.";
+    errorEl.hidden = false;
+    return;
+  }
 
   const res = await fetch("/api/admin/groups", {
     method: "POST",
@@ -490,15 +508,12 @@ addGroupForm.addEventListener("submit", async (event) => {
   }
 
   errorEl.hidden = true;
-  const { secret } = await res.json();
-  const resultEl = document.getElementById("group-secret-result")!;
-  (document.getElementById("group-secret-value") as HTMLInputElement).value = secret;
-  resultEl.hidden = false;
-
+  const created = await res.json();
   addGroupForm.reset();
   addGroupForm.hidden = true;
   addGroupButton.hidden = false;
   await loadGroups();
+  revealSecretHandlers.get(created.id)?.(created.secret);
 });
 
 async function loadGroups() {
@@ -518,33 +533,90 @@ function renderGroupRow(group: GroupRow): HTMLElement {
   row.className = "admin-row";
   row.innerHTML = `
     <div class="admin-row-header">
-      <span class="name">${group.name}</span>
-      <span class="admin-row-meta">/${group.slug} · ${group.memberCount} kind(eren)</span>
-      <button type="button" class="group-roster-toggle">Bekijk rooster</button>
+      <span class="name group-name-toggle">${group.name} <a href="/${group.slug}" target="_blank" rel="noopener" class="group-slug-tag">(/${group.slug})</a></span>
+      <span class="admin-row-meta">${group.memberCount} kind(eren)</span>
+      <button type="button" class="group-roster-toggle">Rooster beheren</button>
     </div>
   `;
 
-  const toggle = row.querySelector(".group-roster-toggle")!;
   let rosterEl: HTMLElement | null = null;
 
-  toggle.addEventListener("click", async () => {
-    if (rosterEl) {
-      rosterEl.remove();
-      rosterEl = null;
-      return;
-    }
+  async function openRoster(): Promise<HTMLElement> {
+    if (rosterEl) return rosterEl;
     rosterEl = document.createElement("div");
+    const secretEl = document.createElement("div");
     const rosterListEl = document.createElement("div");
     rosterListEl.className = "group-roster-list";
     const invitesEl = document.createElement("div");
+    rosterEl.appendChild(secretEl);
     rosterEl.appendChild(rosterListEl);
     rosterEl.appendChild(invitesEl);
     row.appendChild(rosterEl);
+    renderGroupSecretSection(secretEl, group);
     await renderGroupRoster(rosterListEl, group);
     await renderGroupInvites(invitesEl, group);
+    return rosterEl;
+  }
+
+  function closeRoster() {
+    rosterEl?.remove();
+    rosterEl = null;
+  }
+
+  function toggleRoster() {
+    if (rosterEl) closeRoster();
+    else openRoster();
+  }
+
+  row.querySelector(".group-roster-toggle")!.addEventListener("click", toggleRoster);
+  // The group's name is also clickable to expand/collapse, same action as
+  // the button — a more discoverable affordance than the button alone.
+  row.querySelector(".group-name-toggle")!.addEventListener("click", toggleRoster);
+  // The slug link (opens the actual group page) sits inside that same
+  // clickable name span — stop it from also toggling the roster.
+  row.querySelector(".group-slug-tag")!.addEventListener("click", (event) => event.stopPropagation());
+
+  revealSecretHandlers.set(group.id, (secret) => {
+    openRoster().then((el) => {
+      showRevealedSecret(el.querySelector(".group-secret-section") as HTMLElement, group, secret);
+    });
   });
 
   return row;
+}
+
+function renderGroupSecretSection(container: HTMLElement, group: GroupRow) {
+  container.className = "group-secret-section";
+  container.innerHTML = `
+    <button type="button" class="group-regenerate-secret-button">Regenereer geheim</button>
+    <div class="group-secret-reveal" hidden>
+      <p><strong>Klas-geheim voor ${group.name}:</strong></p>
+      <input type="text" readonly class="group-secret-reveal-value" />
+      <p class="secret-warning">
+        Bewaar deze code goed — dit is de enige keer dat je 'm ziet. Ben je 'm
+        kwijt? Gebruik dan hierboven "Regenereer geheim" (het oude geheim
+        werkt daarna niet meer).
+      </p>
+    </div>
+  `;
+
+  container.querySelector(".group-regenerate-secret-button")!.addEventListener("click", async () => {
+    const confirmed = confirm(
+      `Weet je zeker dat je het klas-geheim van "${group.name}" wilt vernieuwen? Het huidige geheim werkt daarna niet meer.`,
+    );
+    if (!confirmed) return;
+
+    const res = await fetch(`/api/admin/groups/${group.id}/regenerate-secret`, { method: "POST" });
+    if (!res.ok) return;
+    const { secret } = await res.json();
+    showRevealedSecret(container, group, secret);
+  });
+}
+
+function showRevealedSecret(container: HTMLElement, group: GroupRow, secret: string) {
+  const revealEl = container.querySelector(".group-secret-reveal") as HTMLElement;
+  (container.querySelector(".group-secret-reveal-value") as HTMLInputElement).value = secret;
+  revealEl.hidden = false;
 }
 
 async function renderGroupRoster(container: HTMLElement, group: GroupRow) {
@@ -572,6 +644,7 @@ async function renderGroupRoster(container: HTMLElement, group: GroupRow) {
       removeButton.type = "button";
       removeButton.textContent = "Verwijderen uit groep";
       removeButton.addEventListener("click", async () => {
+        if (!confirm(`Weet je zeker dat je ${child.name} wilt verwijderen uit deze groep?`)) return;
         await fetch(`/api/admin/groups/${group.id}/children/${child.id}`, { method: "DELETE" });
         await renderGroupRoster(container, group);
         await loadGroups();
@@ -583,9 +656,13 @@ async function renderGroupRoster(container: HTMLElement, group: GroupRow) {
 }
 
 async function renderGroupInvites(container: HTMLElement, group: GroupRow) {
-  // Reuses the Invites tab's markup pattern (invite-form / invite-result),
-  // scoped per group via querySelector on this container rather than
+  // Scoped per group via querySelector on this container rather than
   // global ids, since multiple groups' rosters can be open at once.
+  //
+  // Deliberately no separate "here's the link" reveal box after creating
+  // an invite — the list below already shows a pending invite's link, so
+  // a second copy right above it was pure duplication. The new row is
+  // highlighted instead (see loadGroupInvitesList).
   container.innerHTML = `
     <h3>Uitnodigingen</h3>
     <form class="invite-form group-invite-form">
@@ -599,10 +676,6 @@ async function renderGroupInvites(container: HTMLElement, group: GroupRow) {
       </label>
       <button type="submit">Genereer uitnodiging</button>
     </form>
-    <div class="invite-result group-invite-result" hidden>
-      <p>Deel deze link met de ouder van <span class="group-invite-result-name"></span>:</p>
-      <input type="text" class="group-invite-result-url" readonly />
-    </div>
     <div class="group-invites-list admin-list"></div>
   `;
 
@@ -620,19 +693,14 @@ async function renderGroupInvites(container: HTMLElement, group: GroupRow) {
     if (!res.ok) return;
 
     const invite = await res.json();
-    const resultEl = container.querySelector(".group-invite-result") as HTMLElement;
-    container.querySelector(".group-invite-result-name")!.textContent = invite.childName;
-    (container.querySelector(".group-invite-result-url") as HTMLInputElement).value = invite.url;
-    resultEl.hidden = false;
-
     form.reset();
-    await loadGroupInvitesList(container, group);
+    await loadGroupInvitesList(container, group, invite.token);
   });
 
   await loadGroupInvitesList(container, group);
 }
 
-async function loadGroupInvitesList(container: HTMLElement, group: GroupRow) {
+async function loadGroupInvitesList(container: HTMLElement, group: GroupRow, highlightToken?: string) {
   const res = await fetch(`/api/admin/groups/${group.id}/invites`);
   const list = container.querySelector(".group-invites-list") as HTMLElement;
   list.innerHTML = "";
@@ -643,7 +711,7 @@ async function loadGroupInvitesList(container: HTMLElement, group: GroupRow) {
 
   for (const invite of rows) {
     const row = document.createElement("div");
-    row.className = "admin-row";
+    row.className = "admin-row" + (invite.token === highlightToken ? " newly-created" : "");
     row.innerHTML = `
       <div class="admin-row-header">
         <span class="name">${invite.childName}</span>

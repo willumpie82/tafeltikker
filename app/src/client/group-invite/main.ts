@@ -124,6 +124,7 @@ function showConfirm(match: Candidate, otherChildren: Candidate[]) {
 function showPicker(otherChildren: Candidate[]) {
   document.getElementById("group-invite-confirm")!.hidden = true;
   const pickerEl = document.getElementById("group-invite-picker")!;
+  document.getElementById("group-invite-picker-child-name")!.textContent = childName;
   const listEl = document.getElementById("group-invite-picker-list")!;
   listEl.innerHTML = "";
 
@@ -143,6 +144,7 @@ let newChildAvatarId = "";
 document.getElementById("group-invite-add-new-child")!.addEventListener("click", () => {
   document.getElementById("group-invite-picker")!.hidden = true;
   const form = document.getElementById("group-invite-new-child-form") as HTMLFormElement;
+  document.getElementById("group-invite-new-child-name")!.textContent = childName;
   form.hidden = false;
   buildAvatarPicker(document.getElementById("group-invite-new-child-avatar-picker")!, undefined, (id) => (newChildAvatarId = id));
 });

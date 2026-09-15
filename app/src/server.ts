@@ -13,6 +13,9 @@ import adminRoutes from "./routes/admin.js";
 import registerRoutes from "./routes/register.js";
 import challengesRoutes from "./routes/challenges.js";
 import groupRoutes from "./routes/groups.js";
+import { eq } from "drizzle-orm";
+import { db } from "./db/index.js";
+import { groups } from "./db/schema.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -58,6 +61,16 @@ app.get<{ Params: { slug: string } }>("/:slug", async (request, reply) => {
   const { slug } = request.params;
   if (RESERVED_TOP_LEVEL_PATHS.has(slug)) return reply.sendFile(slug);
   if (!/^[a-z0-9_-]+$/.test(slug)) return reply.callNotFound();
+
+  // A real 404 for a slug that isn't a group at all — not just the API
+  // underneath returning one while the page itself came back 200 — so a
+  // scanner probing random slugs can't tell "no such group" from "real
+  // page" by status code alone. Still serves the SPA shell so a genuine
+  // user with a stale/mistyped link sees the friendly "niet gevonden"
+  // view, just under a 404 status.
+  const [group] = await db.select({ id: groups.id }).from(groups).where(eq(groups.slug, slug));
+  if (!group) return reply.code(404).sendFile("index.html");
+
   return reply.sendFile("index.html"); // client reads location.pathname itself
 });
 

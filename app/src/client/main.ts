@@ -51,7 +51,8 @@ function getGroupSlugFromPath(): string | null {
   return slug || null;
 }
 
-initGroupGate((avatars) => {
+initGroupGate((groupName, avatars) => {
+  document.getElementById("avatars-heading")!.textContent = `Welkom bij ${groupName}, klik op je naam om door te gaan`;
   renderAvatarGrid(avatars);
   showView("view-avatars");
 });
@@ -66,7 +67,9 @@ async function loadGroupAvatarsOrGate(slug: string) {
     showGroupGate(slug);
     return;
   }
-  renderAvatarGrid(await res.json());
+  const { groupName, avatars } = await res.json();
+  document.getElementById("avatars-heading")!.textContent = `Welkom bij ${groupName}, klik op je naam om door te gaan`;
+  renderAvatarGrid(avatars);
   showView("view-avatars");
 }
 

@@ -49,9 +49,9 @@ test.describe.serial("group invite accept flow", () => {
     await loginAsAdmin(page);
     await createGroupViaAdmin(page, GROUP_NAME, GROUP_SLUG);
 
-    const groupRow = page.locator(".admin-row", { has: page.locator(".name", { hasText: GROUP_NAME }) });
-    await groupRow.locator(".group-roster-toggle").click();
-
+    // Creating a group now auto-opens its roster panel to reveal the
+    // secret inline — no need to click the toggle to open it here too
+    // (doing so would just close what creation already opened).
     newChildInvite = await createGroupInvite(page, "NieuweOuderKind");
     confirmInvite = await createGroupInvite(page, "Robin");
     declineInvite = await createGroupInvite(page, "Sam");

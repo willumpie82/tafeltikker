@@ -224,19 +224,14 @@ export default async function groupRoutes(app: FastifyInstance) {
   // is left completely untouched — the ungrouped single-family case keeps
   // working with zero behavior change; grouped installs use this instead.
   app.get<{ Params: { slug: string } }>("/api/group/:slug/avatars", async (request, reply) => {
-    const [group] = await db.select({ id: groups.id }).from(groups).where(eq(groups.slug, request.params.slug));
+    const [group] = await db.select({ id: groups.id, name: groups.name }).from(groups).where(eq(groups.slug, request.params.slug));
     if (!group) return reply.code(404).send({ error: "group_not_found" });
 
     if (!isGroupTrusted(request, group.id)) {
       return reply.code(401).send({ error: "not_trusted" });
     }
 
-    return db
-      .select({ id: children.id, name: children.name, avatarId: children.avatarId })
-      .from(groupChildren)
-      .innerJoin(children, eq(children.id, groupChildren.childId))
-      .where(and(eq(groupChildren.groupId, group.id), isNull(groupChildren.removedAt)))
-      .orderBy(children.name);
+    return { groupName: group.name, avatars: await groupRoster(group.id) };
   });
 
   async function groupRoster(groupId: number) {
@@ -252,7 +247,7 @@ export default async function groupRoutes(app: FastifyInstance) {
     "/api/group/:slug/secret-login",
     async (request, reply) => {
       const [group] = await db
-        .select({ id: groups.id, secretHash: groups.secretHash })
+        .select({ id: groups.id, name: groups.name, secretHash: groups.secretHash })
         .from(groups)
         .where(eq(groups.slug, request.params.slug));
       if (!group) return reply.code(404).send({ error: "group_not_found" });
@@ -263,7 +258,7 @@ export default async function groupRoutes(app: FastifyInstance) {
       }
 
       if (remember) trustGroup(request, group.id);
-      return groupRoster(group.id);
+      return { groupName: group.name, avatars: await groupRoster(group.id) };
     },
   );
 
@@ -274,7 +269,7 @@ export default async function groupRoutes(app: FastifyInstance) {
   app.post<{ Params: { slug: string }; Body: { username: string; password: string; remember?: boolean } }>(
     "/api/group/:slug/parent-login",
     async (request, reply) => {
-      const [group] = await db.select({ id: groups.id }).from(groups).where(eq(groups.slug, request.params.slug));
+      const [group] = await db.select({ id: groups.id, name: groups.name }).from(groups).where(eq(groups.slug, request.params.slug));
       if (!group) return reply.code(404).send({ error: "group_not_found" });
 
       const { username, password, remember } = request.body ?? {};
@@ -301,7 +296,7 @@ export default async function groupRoutes(app: FastifyInstance) {
       }
 
       if (remember) trustGroup(request, group.id);
-      return groupRoster(group.id);
+      return { groupName: group.name, avatars: await groupRoster(group.id) };
     },
   );
 
