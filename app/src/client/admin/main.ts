@@ -535,6 +535,7 @@ function renderGroupRow(group: GroupRow): HTMLElement {
     }
     rosterEl = document.createElement("div");
     const rosterListEl = document.createElement("div");
+    rosterListEl.className = "group-roster-list";
     const invitesEl = document.createElement("div");
     rosterEl.appendChild(rosterListEl);
     rosterEl.appendChild(invitesEl);

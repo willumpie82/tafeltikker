@@ -8,6 +8,8 @@ app/public/admin.js
 app/public/admin.js.map
 app/public/register.js
 app/public/register.js.map
+app/public/group-invite.js
+app/public/group-invite.js.map
 *.sqlite
 *.sqlite-journal
 *.sqlite-shm

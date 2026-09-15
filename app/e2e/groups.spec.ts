@@ -39,7 +39,7 @@ test("removing a child from a group's roster doesn't touch the child's account o
 
   const groupRow = page.locator(".admin-row", { has: page.locator(".name", { hasText: "Klas 4A" }) });
   await groupRow.locator(".group-roster-toggle").click();
-  await expect(groupRow.locator(".admin-row .name", { hasText: "Sam" })).toBeVisible();
+  await expect(groupRow.locator(".group-roster-list .name", { hasText: "Sam" })).toBeVisible();
 
   await groupRow.getByRole("button", { name: "Verwijderen uit groep" }).click();
   // Removal reloads the whole tab (collapsing the roster panel back to
@@ -47,7 +47,7 @@ test("removing a child from a group's roster doesn't touch the child's account o
   await expect(groupRow.locator(".admin-row-meta", { hasText: "0 kind(eren)" })).toBeVisible();
   await groupRow.locator(".group-roster-toggle").click();
   await expect(groupRow.getByText("Nog geen kinderen in deze groep.")).toBeVisible();
-  await expect(groupRow.locator(".admin-row .name", { hasText: "Sam" })).toHaveCount(0);
+  await expect(groupRow.locator(".group-roster-list .name", { hasText: "Sam" })).toHaveCount(0);
 
   // Sam's own account (and standing as a child on the parent dashboard)
   // is untouched by a roster removal.

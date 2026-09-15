@@ -17,6 +17,16 @@ export function getChildId(name: string): number {
   }
 }
 
+/** Forces a group invite into an already-expired state, without waiting real time. */
+export function expireGroupInvite(token: string) {
+  const db = new Database(E2E_DB_PATH);
+  try {
+    db.prepare("UPDATE group_invites SET expires_at = ? WHERE token = ?").run(new Date(Date.now() - 1000).toISOString(), token);
+  } finally {
+    db.close();
+  }
+}
+
 export function getGroupId(slug: string): number {
   const db = new Database(E2E_DB_PATH, { readonly: true });
   try {

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tafeltikker — Groep uitnodiging</title>
+    <link rel="stylesheet" href="/parent.css" />
+  </head>
+  <body>
+    <main id="group-invite-app">
+      <section id="group-invite-view-invalid" class="parent-view" hidden>
+        <h1>Ongeldige uitnodiging</h1>
+        <p>Deze uitnodigingslink is niet (meer) geldig — mogelijk is hij al gebruikt of verlopen. Vraag een nieuwe link aan bij de groepsbeheerder.</p>
+      </section>
+
+      <section id="group-invite-view-step1" class="parent-view" hidden>
+        <h1>Stap 1: Jouw account</h1>
+        <p id="group-invite-intro"></p>
+
+        <nav class="group-invite-auth-tabs">
+          <button type="button" class="group-invite-auth-tab selected" data-auth-tab="login">Ik heb al een account</button>
+          <button type="button" class="group-invite-auth-tab" data-auth-tab="register">Nieuw account</button>
+        </nav>
+
+        <form id="group-invite-login-form" class="group-invite-auth-form">
+          <label>
+            Gebruikersnaam
+            <input type="text" id="group-invite-login-username" autocomplete="username" required />
+          </label>
+          <label>
+            Wachtwoord
+            <input type="password" id="group-invite-login-password" autocomplete="current-password" required />
+          </label>
+          <p id="group-invite-login-error" class="error-text" hidden>Onjuiste gebruikersnaam of wachtwoord.</p>
+          <button type="submit">Inloggen</button>
+        </form>
+
+        <form id="group-invite-register-form" class="group-invite-auth-form" hidden>
+          <label>
+            Gebruikersnaam
+            <input type="text" id="group-invite-register-username" autocomplete="username" required />
+          </label>
+          <label>
+            Wachtwoord
+            <input type="password" id="group-invite-register-password" autocomplete="new-password" required />
+          </label>
+          <p id="group-invite-register-error" class="error-text" hidden></p>
+          <button type="submit">Account aanmaken</button>
+        </form>
+      </section>
+
+      <section id="group-invite-view-step2" class="parent-view" hidden>
+        <h1>Stap 2: <span id="group-invite-child-name-heading"></span>'s account</h1>
+
+        <div id="group-invite-confirm" hidden>
+          <p>Is dit <span id="group-invite-confirm-avatar"></span> <strong id="group-invite-confirm-name"></strong>?</p>
+          <div class="group-invite-confirm-actions">
+            <button type="button" id="group-invite-confirm-yes">Ja</button>
+            <button type="button" id="group-invite-confirm-no">Nee</button>
+          </div>
+        </div>
+
+        <div id="group-invite-picker" hidden>
+          <h2>Welk kind is het?</h2>
+          <div id="group-invite-picker-list"></div>
+          <button type="button" id="group-invite-add-new-child">+ Nieuw kind toevoegen</button>
+        </div>
+
+        <form id="group-invite-new-child-form" hidden>
+          <h2>Nieuw kind</h2>
+          <label>
+            Avatar
+            <div id="group-invite-new-child-avatar-picker" class="avatar-picker"></div>
+          </label>
+          <label>
+            Geheime code (4 cijfers)
+            <input type="text" id="group-invite-new-child-pin" inputmode="numeric" pattern="\d{4}" maxlength="4" required />
+          </label>
+          <button type="submit">Toevoegen</button>
+        </form>
+
+        <div id="group-invite-collision" hidden>
+          <p>Er zit al een kind met deze naam in de groep. Kies een andere naam:</p>
+          <label>
+            Weergavenaam
+            <input type="text" id="group-invite-collision-name" />
+          </label>
+          <button type="button" id="group-invite-collision-submit">Opslaan</button>
+        </div>
+
+        <p id="group-invite-step2-error" class="error-text" hidden></p>
+      </section>
+
+      <section id="group-invite-view-success" class="parent-view" hidden>
+        <h1 id="group-invite-success-heading"></h1>
+        <a href="/parent.html">Naar het ouderportaal &rarr;</a>
+      </section>
+
+      <p id="group-invite-loading">Uitnodiging controleren...</p>
+    </main>
+
+    <script type="module" src="/group-invite.js"></script>
+  </body>
+</html>

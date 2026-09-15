@@ -116,6 +116,43 @@ button#logout-button {
   font-size: 0.9rem;
 }
 
+.group-invite-auth-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.group-invite-auth-tab {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  padding: 8px 4px;
+  color: #555;
+}
+
+.group-invite-auth-tab.selected {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: bold;
+}
+
+.group-invite-auth-form[hidden] {
+  display: none;
+}
+
+.group-invite-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.group-invite-confirm-actions {
+  display: flex;
+  gap: 12px;
+}
+
 .dashboard-header {
   display: flex;
   align-items: center;

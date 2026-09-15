@@ -3,10 +3,11 @@ import type { FastifyInstance } from "fastify";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { groups, groupAdmins, groupChildren, groupInvites, children, parents, parentChild } from "../db/schema.js";
-import { hashSecret, verifySecret } from "../auth/password.js";
-import { requireAdmin, requireGroupAdmin } from "../auth/require.js";
+import { hashSecret, verifySecret, isValidPin } from "../auth/password.js";
+import { requireAdmin, requireGroupAdmin, requireParentId } from "../auth/require.js";
 import { isGroupTrusted, trustGroup } from "../auth/groupTrust.js";
 import { baseUrl } from "./shared.js";
+import { assertOwnsChild } from "./parent.js";
 
 const SLUG_PATTERN = /^[a-z0-9_-]+$/;
 const DEFAULT_INVITE_EXPIRY_DAYS = 7;
@@ -22,6 +23,44 @@ function generateKlasGeheim(): string {
   let secret = "";
   for (const byte of bytes) secret += KLAS_GEHEIM_ALPHABET[byte % KLAS_GEHEIM_ALPHABET.length];
   return secret;
+}
+
+// Same usedAt/expiry logic as register.ts's findValidInvite, kept separate
+// since it queries a different table (a distinct token space from
+// parent_invites).
+async function findValidGroupInvite(token: string) {
+  const [invite] = await db.select().from(groupInvites).where(eq(groupInvites.token, token));
+  if (!invite || invite.usedAt) return null;
+  if (new Date(invite.expiresAt).getTime() < Date.now()) return null;
+  return invite;
+}
+
+// Word-based, case-insensitive substring match — the design doc is explicit
+// that the human "Is dit ... ?" confirmation is the real safety net, not
+// algorithmic precision, so this deliberately isn't more clever than this.
+function isFuzzyMatch(childName: string, inviteChildName: string): boolean {
+  const name = childName.trim().toLowerCase();
+  const invite = inviteChildName.trim().toLowerCase();
+  if (!name || !invite) return false;
+  return name === invite || name.split(/\s+/).includes(invite) || name.includes(invite);
+}
+
+async function hasNameCollisionInGroup(groupId: number, name: string, excludeChildId?: number): Promise<boolean> {
+  const rows = await db
+    .select({ childId: children.id })
+    .from(groupChildren)
+    .innerJoin(children, eq(children.id, groupChildren.childId))
+    .where(and(eq(groupChildren.groupId, groupId), isNull(groupChildren.removedAt), eq(children.name, name)));
+  return rows.some((row) => row.childId !== excludeChildId);
+}
+
+// A starting suggestion the parent can edit before resubmitting — e.g.
+// "Tim Oldemans" -> "Tim O." A single-word name has nothing to abbreviate
+// from, so it's returned unchanged and the parent types their own.
+function suggestDisambiguatedName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length > 1) return `${parts[0]} ${parts[1][0]}.`;
+  return name;
 }
 
 export default async function groupRoutes(app: FastifyInstance) {
@@ -265,4 +304,134 @@ export default async function groupRoutes(app: FastifyInstance) {
       return groupRoster(group.id);
     },
   );
+
+  app.get<{ Params: { token: string } }>("/api/group-invite/:token", async (request) => {
+    const invite = await findValidGroupInvite(request.params.token);
+    if (!invite) return { valid: false };
+
+    const [group] = await db.select({ name: groups.name }).from(groups).where(eq(groups.id, invite.groupId));
+    return { valid: true, groupName: group?.name ?? "", childName: invite.childName };
+  });
+
+  // Mirrors register.ts's POST /api/register, but validates against
+  // groupInvites instead of parentInvites — a separate token space, so
+  // that endpoint genuinely can't be reused as-is here. Deliberately does
+  // NOT mark the invite used — that only happens once the child is
+  // actually linked, in /accept below.
+  app.post<{ Params: { token: string }; Body: { username: string; password: string } }>(
+    "/api/group-invite/:token/register",
+    async (request, reply) => {
+      const invite = await findValidGroupInvite(request.params.token);
+      if (!invite) return reply.code(400).send({ error: "invalid_invite" });
+
+      const { username, password } = request.body ?? {};
+      if (!username?.trim() || !password) {
+        return reply.code(400).send({ error: "invalid_request" });
+      }
+
+      const [existing] = await db.select().from(parents).where(eq(parents.username, username.trim()));
+      if (existing) return reply.code(409).send({ error: "username_taken" });
+
+      const [parent] = await db
+        .insert(parents)
+        .values({ username: username.trim(), passwordHash: await hashSecret(password), role: "parent" })
+        .returning({ id: parents.id, username: parents.username, role: parents.role });
+
+      request.parentSession.set("parentId", parent.id);
+      return parent;
+    },
+  );
+
+  app.get<{ Params: { token: string } }>("/api/group-invite/:token/candidates", async (request, reply) => {
+    const parentId = requireParentId(request);
+    if (!parentId) return reply.code(401).send({ error: "not_authenticated" });
+
+    const invite = await findValidGroupInvite(request.params.token);
+    if (!invite) return reply.code(400).send({ error: "invalid_invite" });
+
+    const myChildren = await db
+      .select({ id: children.id, name: children.name, avatarId: children.avatarId })
+      .from(children)
+      .innerJoin(parentChild, eq(parentChild.childId, children.id))
+      .where(eq(parentChild.parentId, parentId))
+      .orderBy(children.name);
+
+    const bestMatch = myChildren.find((child) => isFuzzyMatch(child.name, invite.childName)) ?? null;
+    const otherChildren = myChildren.filter((child) => child.id !== bestMatch?.id);
+
+    return { bestMatch, otherChildren };
+  });
+
+  app.post<{
+    Params: { token: string };
+    Body: { childId?: number; newChild?: { avatarId: string; pin: string }; displayName?: string };
+  }>("/api/group-invite/:token/accept", async (request, reply) => {
+    const parentId = requireParentId(request);
+    if (!parentId) return reply.code(401).send({ error: "not_authenticated" });
+
+    const invite = await findValidGroupInvite(request.params.token);
+    if (!invite) return reply.code(400).send({ error: "invalid_invite" });
+
+    const { childId, newChild, displayName } = request.body ?? {};
+
+    let resolvedName: string;
+    if (childId) {
+      if (!(await assertOwnsChild(parentId, childId))) {
+        return reply.code(404).send({ error: "child_not_found" });
+      }
+      const [child] = await db.select({ name: children.name }).from(children).where(eq(children.id, childId));
+      if (!child) return reply.code(404).send({ error: "child_not_found" });
+      resolvedName = displayName?.trim() || child.name;
+    } else if (newChild) {
+      if (!newChild.avatarId || !isValidPin(String(newChild.pin ?? ""))) {
+        return reply.code(400).send({ error: "invalid_request" });
+      }
+      resolvedName = displayName?.trim() || invite.childName;
+    } else {
+      return reply.code(400).send({ error: "invalid_request" });
+    }
+
+    // Whichever child is about to be confirmed/created — check against the
+    // group's *other current* members, per the design doc's step 5.
+    if (await hasNameCollisionInGroup(invite.groupId, resolvedName, childId)) {
+      return reply.code(409).send({ error: "name_collision", suggested: suggestDisambiguatedName(resolvedName) });
+    }
+
+    let resolvedChildId: number;
+    if (childId) {
+      resolvedChildId = childId;
+      if (displayName?.trim()) {
+        await db.update(children).set({ name: displayName.trim() }).where(eq(children.id, childId));
+      }
+    } else {
+      const [created] = await db
+        .insert(children)
+        .values({ name: resolvedName, avatarId: newChild!.avatarId, pinHash: await hashSecret(newChild!.pin) })
+        .returning({ id: children.id });
+      resolvedChildId = created.id;
+      await db.insert(parentChild).values({ parentId, childId: resolvedChildId });
+    }
+
+    // A child who previously left this exact group (parent.ts's soft
+    // delete) already has a group_children row at this (groupId, childId)
+    // key — a plain insert would collide with its primary key, so this
+    // reactivates that row instead of trying to insert a second one.
+    await db
+      .insert(groupChildren)
+      .values({ groupId: invite.groupId, childId: resolvedChildId })
+      .onConflictDoUpdate({ target: [groupChildren.groupId, groupChildren.childId], set: { removedAt: null } });
+
+    await db
+      .update(groupInvites)
+      .set({ usedBy: parentId, usedAt: new Date().toISOString() })
+      .where(eq(groupInvites.id, invite.id));
+
+    // Finishing an invite proves membership more thoroughly than either
+    // gate path — auto-trusting the device avoids immediately re-gating
+    // the parent right after they just finished setup.
+    trustGroup(request, invite.groupId);
+
+    const [group] = await db.select({ name: groups.name }).from(groups).where(eq(groups.id, invite.groupId));
+    return { groupName: group?.name ?? "", childName: resolvedName };
+  });
 }
