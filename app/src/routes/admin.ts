@@ -6,20 +6,11 @@ import { parents, children, parentChild, feedback, parentInvites } from "../db/s
 import { hashSecret, isValidPin } from "../auth/password.js";
 import { requireAdmin } from "../auth/require.js";
 import { applyChildUpdate, InvalidPinError, NothingToUpdateError } from "./childUpdates.js";
+import { baseUrl } from "./shared.js";
 
 const PROMOTABLE_ROLES = new Set(["parent", "user_admin"]);
 const DEFAULT_INVITE_EXPIRY_DAYS = 7;
 const FEEDBACK_STATUSES = new Set(["new", "accepted", "need_info", "planned", "fixed", "declined"]);
-
-/**
- * PUBLIC_BASE_URL should be set once this instance is reachable at a real
- * domain (e.g. https://tafeltikker.oldemans.nl) behind the reverse proxy —
- * otherwise invite links would embed whatever host/port the admin happened
- * to load admin.html from (fine for LAN-only use, wrong once exposed).
- */
-function baseUrl(request: { protocol: string; headers: { host?: string } }): string {
-  return process.env.PUBLIC_BASE_URL ?? `${request.protocol}://${request.headers.host}`;
-}
 
 export default async function adminRoutes(app: FastifyInstance) {
   app.get("/api/admin/parents", async (request, reply) => {

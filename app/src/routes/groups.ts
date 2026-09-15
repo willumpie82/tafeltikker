@@ -1,13 +1,15 @@
 import { randomBytes } from "node:crypto";
 import type { FastifyInstance } from "fastify";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { groups, groupAdmins, groupChildren, children, parents, parentChild } from "../db/schema.js";
+import { groups, groupAdmins, groupChildren, groupInvites, children, parents, parentChild } from "../db/schema.js";
 import { hashSecret, verifySecret } from "../auth/password.js";
 import { requireAdmin, requireGroupAdmin } from "../auth/require.js";
 import { isGroupTrusted, trustGroup } from "../auth/groupTrust.js";
+import { baseUrl } from "./shared.js";
 
 const SLUG_PATTERN = /^[a-z0-9_-]+$/;
+const DEFAULT_INVITE_EXPIRY_DAYS = 7;
 
 // Excludes 0/O/1/l/I — this is handwritten on a whiteboard or read aloud to
 // a class, not pasted as a URL token, so avoiding ambiguous characters
@@ -127,6 +129,57 @@ export default async function groupRoutes(app: FastifyInstance) {
       return { ok: true };
     },
   );
+
+  app.post<{ Params: { id: string }; Body: { childName: string; expiresInDays?: number } }>(
+    "/api/admin/groups/:id/invites",
+    async (request, reply) => {
+      const groupId = Number(request.params.id);
+      const admin = await requireGroupAdmin(request, groupId);
+      if (!admin) return reply.code(403).send({ error: "forbidden" });
+
+      const { childName, expiresInDays } = request.body ?? {};
+      if (!childName?.trim()) return reply.code(400).send({ error: "invalid_request" });
+
+      const expiryDays = Number.isFinite(expiresInDays) && expiresInDays! > 0 ? expiresInDays! : DEFAULT_INVITE_EXPIRY_DAYS;
+      const token = randomBytes(24).toString("base64url");
+      const expiresAt = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString();
+
+      const [invite] = await db
+        .insert(groupInvites)
+        .values({ groupId, childName: childName.trim(), token, createdBy: admin.parentId, expiresAt })
+        .returning({ token: groupInvites.token, childName: groupInvites.childName, expiresAt: groupInvites.expiresAt });
+
+      return { ...invite, url: `${baseUrl(request)}/group-invite.html?token=${invite.token}` };
+    },
+  );
+
+  app.get<{ Params: { id: string } }>("/api/admin/groups/:id/invites", async (request, reply) => {
+    const groupId = Number(request.params.id);
+    const admin = await requireGroupAdmin(request, groupId);
+    if (!admin) return reply.code(403).send({ error: "forbidden" });
+
+    const rows = await db
+      .select({
+        id: groupInvites.id,
+        token: groupInvites.token,
+        childName: groupInvites.childName,
+        expiresAt: groupInvites.expiresAt,
+        usedAt: groupInvites.usedAt,
+        usedByUsername: parents.username,
+        createdAt: groupInvites.createdAt,
+      })
+      .from(groupInvites)
+      .leftJoin(parents, eq(parents.id, groupInvites.usedBy))
+      .where(eq(groupInvites.groupId, groupId))
+      .orderBy(desc(groupInvites.createdAt));
+
+    const now = Date.now();
+    return rows.map((row) => ({
+      ...row,
+      url: `${baseUrl(request)}/group-invite.html?token=${row.token}`,
+      status: row.usedAt ? "used" : new Date(row.expiresAt).getTime() < now ? "expired" : "pending",
+    }));
+  });
 
   // Group-scoped roster for the child login screen. GET /api/child/avatars
   // is left completely untouched — the ungrouped single-family case keeps

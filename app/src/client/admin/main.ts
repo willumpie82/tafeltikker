@@ -24,6 +24,17 @@ type InviteRow = {
 };
 type GroupRow = { id: number; slug: string; name: string; createdAt: string; memberCount: number };
 type GroupRosterChild = { id: number; name: string; avatarId: string; removedAt: string | null };
+type GroupInviteRow = {
+  id: number;
+  token: string;
+  childName: string;
+  url: string;
+  expiresAt: string;
+  usedAt: string | null;
+  usedByUsername: string | null;
+  createdAt: string;
+  status: "pending" | "used" | "expired";
+};
 
 const ROLE_LABELS: Record<Role, string> = {
   parent: "Ouder",
@@ -523,8 +534,13 @@ function renderGroupRow(group: GroupRow): HTMLElement {
       return;
     }
     rosterEl = document.createElement("div");
+    const rosterListEl = document.createElement("div");
+    const invitesEl = document.createElement("div");
+    rosterEl.appendChild(rosterListEl);
+    rosterEl.appendChild(invitesEl);
     row.appendChild(rosterEl);
-    await renderGroupRoster(rosterEl, group);
+    await renderGroupRoster(rosterListEl, group);
+    await renderGroupInvites(invitesEl, group);
   });
 
   return row;
@@ -562,6 +578,83 @@ async function renderGroupRoster(container: HTMLElement, group: GroupRow) {
       childRow.querySelector(".admin-row-header")!.appendChild(removeButton);
     }
     container.appendChild(childRow);
+  }
+}
+
+async function renderGroupInvites(container: HTMLElement, group: GroupRow) {
+  // Reuses the Invites tab's markup pattern (invite-form / invite-result),
+  // scoped per group via querySelector on this container rather than
+  // global ids, since multiple groups' rosters can be open at once.
+  container.innerHTML = `
+    <h3>Uitnodigingen</h3>
+    <form class="invite-form group-invite-form">
+      <label>
+        Naam van het kind
+        <input type="text" class="group-invite-child-name" required />
+      </label>
+      <label>
+        Geldig (dagen)
+        <input type="number" class="group-invite-days" min="1" value="7" />
+      </label>
+      <button type="submit">Genereer uitnodiging</button>
+    </form>
+    <div class="invite-result group-invite-result" hidden>
+      <p>Deel deze link met de ouder van <span class="group-invite-result-name"></span>:</p>
+      <input type="text" class="group-invite-result-url" readonly />
+    </div>
+    <div class="group-invites-list admin-list"></div>
+  `;
+
+  const form = container.querySelector(".group-invite-form") as HTMLFormElement;
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const childName = (container.querySelector(".group-invite-child-name") as HTMLInputElement).value;
+    const days = Number((container.querySelector(".group-invite-days") as HTMLInputElement).value) || 7;
+
+    const res = await fetch(`/api/admin/groups/${group.id}/invites`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ childName, expiresInDays: days }),
+    });
+    if (!res.ok) return;
+
+    const invite = await res.json();
+    const resultEl = container.querySelector(".group-invite-result") as HTMLElement;
+    container.querySelector(".group-invite-result-name")!.textContent = invite.childName;
+    (container.querySelector(".group-invite-result-url") as HTMLInputElement).value = invite.url;
+    resultEl.hidden = false;
+
+    form.reset();
+    await loadGroupInvitesList(container, group);
+  });
+
+  await loadGroupInvitesList(container, group);
+}
+
+async function loadGroupInvitesList(container: HTMLElement, group: GroupRow) {
+  const res = await fetch(`/api/admin/groups/${group.id}/invites`);
+  const list = container.querySelector(".group-invites-list") as HTMLElement;
+  list.innerHTML = "";
+  if (!res.ok) return;
+
+  const rows: GroupInviteRow[] = await res.json();
+  const statusLabels: Record<GroupInviteRow["status"], string> = { pending: "In afwachting", used: "Gebruikt", expired: "Verlopen" };
+
+  for (const invite of rows) {
+    const row = document.createElement("div");
+    row.className = "admin-row";
+    row.innerHTML = `
+      <div class="admin-row-header">
+        <span class="name">${invite.childName}</span>
+        <span class="status-badge ${invite.status}">${statusLabels[invite.status]}</span>
+      </div>
+      <div class="admin-row-meta">
+        Verloopt: ${new Date(invite.expiresAt).toLocaleDateString("nl-NL")}
+        ${invite.usedByUsername ? ` · Gebruikt door ${invite.usedByUsername}` : ""}
+      </div>
+      ${invite.status === "pending" ? `<input type="text" readonly value="${invite.url}" class="invite-row-url" />` : ""}
+    `;
+    list.appendChild(row);
   }
 }
 

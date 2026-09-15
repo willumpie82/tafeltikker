@@ -54,3 +54,23 @@ test("removing a child from a group's roster doesn't touch the child's account o
   await page.goto("/parent.html");
   await expect(page.locator(".child-card", { hasText: "Sam" })).toBeVisible();
 });
+
+test("admin creates a group invite and sees the link with the child's name attached", async ({ page }) => {
+  await loginAsAdmin(page);
+  await page.click(".tab-button[data-tab='groups']");
+
+  const groupRow = page.locator(".admin-row", { has: page.locator(".name", { hasText: "Klas 4A" }) });
+  await groupRow.locator(".group-roster-toggle").click();
+
+  await groupRow.locator(".group-invite-child-name").fill("Tim");
+  await groupRow.locator(".group-invite-form button[type=submit]").click();
+
+  await expect(groupRow.locator(".group-invite-result")).toBeVisible();
+  await expect(groupRow.locator(".group-invite-result-name")).toHaveText("Tim");
+  const url = await groupRow.locator(".group-invite-result-url").inputValue();
+  expect(url).toContain("/group-invite.html?token=");
+
+  // List shows the correctly-derived (never-stored) pending status.
+  await expect(groupRow.locator(".group-invites-list .admin-row", { hasText: "Tim" })).toBeVisible();
+  await expect(groupRow.locator(".group-invites-list .status-badge")).toHaveText("In afwachting");
+});
