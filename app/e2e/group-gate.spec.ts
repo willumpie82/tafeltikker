@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
-import { loginAsAdmin, PARENT_USERNAME, PARENT_PASSWORD } from "./helpers.js";
+import { loginAsAdmin, PARENT_USERNAME, PARENT_PASSWORD, CHILDREN } from "./helpers.js";
+import { addChildToGroup, getChildId } from "./db.js";
 
 // Assumes the page is already logged in as admin — call loginAsAdmin once
 // per test, not once per group, since it navigates to /parent.html and a
@@ -127,5 +128,40 @@ test.describe.serial("group gate", () => {
     await page.fill("#group-gate-secret-input", klasBSecret);
     await page.click("#group-gate-secret-form button[type=submit]");
     await page.waitForSelector("#view-avatars:not([hidden])");
+  });
+
+  test("logging out from inside a group re-shows that group's own scoped roster, not the full unscoped one", async ({ page }) => {
+    await loginAsAdmin(page);
+    await page.click(".tab-button[data-tab='groups']");
+    await page.click("#add-group-button");
+    await page.fill("#new-group-name", "Klas Gate C");
+    await page.fill("#new-group-slug", "klasgatec");
+    const [response] = await Promise.all([
+      page.waitForResponse((res) => res.url().includes("/api/admin/groups") && res.request().method() === "POST"),
+      page.click("#add-group-form button[type=submit]"),
+    ]);
+    const { id: groupId, secret } = await response.json();
+    addChildToGroup(groupId, getChildId("Sam"));
+
+    await page.evaluate(() => fetch("/api/parent/logout", { method: "POST" }));
+    await page.goto("/klasgatec");
+    await page.waitForSelector("#view-group-gate:not([hidden])");
+    await page.fill("#group-gate-secret-input", secret);
+    await page.click("#group-gate-secret-form button[type=submit]");
+    await page.waitForSelector("#view-avatars:not([hidden])");
+    await expect(page.locator(".avatar-button")).toHaveCount(1);
+
+    await page.click(".avatar-button:has-text('Sam')");
+    for (const digit of CHILDREN.Sam.pin) {
+      await page.click(`#pin-pad button:text-is('${digit}')`);
+    }
+    await page.waitForSelector("#view-home:not([hidden])");
+    await page.click("#logout-button");
+
+    // Must land back on this same group's scoped roster (1 tile), not
+    // the full unscoped avatar list (Sam + every other child in the DB).
+    await page.waitForSelector("#view-avatars:not([hidden])");
+    await expect(page.locator(".avatar-button")).toHaveCount(1);
+    await expect(page.locator(".avatar-button", { hasText: "Sam" })).toBeVisible();
   });
 });

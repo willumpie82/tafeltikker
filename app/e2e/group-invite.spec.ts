@@ -44,6 +44,7 @@ test.describe.serial("group invite accept flow", () => {
   let declineInvite: { token: string; url: string };
   let tim1Invite: { token: string; url: string };
   let tim2Invite: { token: string; url: string };
+  let alreadyLoggedInInvite: { token: string; url: string };
 
   test("admin creates a group and several invites for the flow tests", async ({ page }) => {
     await loginAsAdmin(page);
@@ -57,6 +58,7 @@ test.describe.serial("group invite accept flow", () => {
     declineInvite = await createGroupInvite(page, "Sam");
     tim1Invite = await createGroupInvite(page, "Tim");
     tim2Invite = await createGroupInvite(page, "Tim");
+    alreadyLoggedInInvite = await createGroupInvite(page, "Robin");
   });
 
   test("new parent registers, sees an empty candidate list, creates a child, and lands on a named success screen", async ({ page }) => {
@@ -186,6 +188,34 @@ test.describe.serial("group invite accept flow", () => {
     await groupRow.locator(".group-roster-toggle").click();
     await expect(groupRow.locator(".group-roster-list .name", { hasText: "Tim O." })).toBeVisible();
     await expect(groupRow.locator(".group-roster-list .name", { hasText: /^Tim$/ })).toBeVisible();
+  });
+
+  test("an already-logged-in parent sees an explicit confirm-or-switch step, not a silent skip to Stap 2", async ({ page }) => {
+    await loginAsAdmin(page); // logs in as PARENT_USERNAME and lands on /admin.html
+
+    await page.goto(alreadyLoggedInInvite.url);
+    await page.waitForSelector("#group-invite-view-already-logged-in:not([hidden])");
+    await expect(page.locator("#group-invite-logged-in-username")).toHaveText(PARENT_USERNAME);
+    await expect(page.locator("#group-invite-progress .group-invite-progress-step.active")).toHaveText("Ouder");
+
+    // Declining logs out and returns to the ordinary Stap 1 (login/register).
+    await page.click("#group-invite-logout-and-restart");
+    await page.waitForSelector("#group-invite-view-step1:not([hidden])");
+    const meRes = await page.evaluate(() => fetch("/api/parent/me").then((r) => r.ok));
+    expect(meRes).toBe(false);
+
+    // Logging back in from here proceeds straight to Stap 2 as usual —
+    // this is an intentional Stap 1 interaction, not a silent skip.
+    await page.fill("#group-invite-login-username", PARENT_USERNAME);
+    await page.fill("#group-invite-login-password", PARENT_PASSWORD);
+    await page.click("#group-invite-login-form button[type=submit]");
+    await page.waitForSelector("#group-invite-view-step2:not([hidden])");
+    await expect(page.locator("#group-invite-progress .group-invite-progress-step.active")).toHaveText("Kind");
+
+    await page.waitForSelector("#group-invite-confirm:not([hidden])");
+    await page.click("#group-invite-confirm-yes");
+    await page.waitForSelector("#group-invite-view-success:not([hidden])");
+    await expect(page.locator("#group-invite-progress .group-invite-progress-step.active")).toHaveText("Klaar");
   });
 
   test("an expired token shows the same invalid-invite state as register.html's equivalent", async ({ page }) => {

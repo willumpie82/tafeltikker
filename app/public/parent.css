@@ -153,6 +153,31 @@ button#logout-button {
   gap: 12px;
 }
 
+.group-invite-progress {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.group-invite-progress-step {
+  font-size: 0.85rem;
+  color: #999;
+  padding-bottom: 4px;
+  border-bottom: 3px solid var(--border);
+}
+
+.group-invite-progress-step.done {
+  color: var(--success);
+  border-bottom-color: var(--success);
+}
+
+.group-invite-progress-step.active {
+  color: var(--accent);
+  font-weight: bold;
+  border-bottom-color: var(--accent);
+}
+
 .dashboard-header {
   display: flex;
   align-items: center;

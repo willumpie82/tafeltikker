@@ -69,7 +69,13 @@ app.get<{ Params: { slug: string } }>("/:slug", async (request, reply) => {
   // user with a stale/mistyped link sees the friendly "niet gevonden"
   // view, just under a 404 status.
   const [group] = await db.select({ id: groups.id }).from(groups).where(eq(groups.slug, slug));
-  if (!group) return reply.code(404).sendFile("index.html");
+  if (!group) {
+    // no-store, not just the default max-age=0: this status depends on
+    // server-side data (does this group exist right now), so a stale
+    // cached copy — especially via back/forward-cache navigation, which
+    // ignores max-age entirely — must never stand in for a fresh check.
+    return reply.header("Cache-Control", "no-store").code(404).sendFile("index.html");
+  }
 
   return reply.sendFile("index.html"); // client reads location.pathname itself
 });

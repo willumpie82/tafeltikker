@@ -22,11 +22,51 @@ let childName = "";
 // disambiguated displayName this time.
 let pendingAccept: AcceptBody = {};
 
-function showStep1() {
-  document.getElementById("group-invite-intro")!.textContent =
-    `Je bent uitgenodigd voor de groep "${groupName}" als ouder van ${childName}.`;
-  step1View.hidden = false;
+const STEP_ORDER = ["ouder", "kind", "klaar"] as const;
+type ProgressStep = (typeof STEP_ORDER)[number];
+
+function setProgressStep(step: ProgressStep) {
+  const progressEl = document.getElementById("group-invite-progress")!;
+  progressEl.hidden = false;
+  const currentIndex = STEP_ORDER.indexOf(step);
+  progressEl.querySelectorAll<HTMLElement>(".group-invite-progress-step").forEach((el) => {
+    const stepIndex = STEP_ORDER.indexOf(el.dataset.step as ProgressStep);
+    el.classList.toggle("active", stepIndex === currentIndex);
+    el.classList.toggle("done", stepIndex < currentIndex);
+  });
 }
+
+function inviteContext(): string {
+  return `Je bent uitgenodigd voor de groep "${groupName}" als ouder van ${childName}.`;
+}
+
+function showStep1() {
+  document.getElementById("group-invite-intro")!.textContent = inviteContext();
+  step1View.hidden = false;
+  setProgressStep("ouder");
+}
+
+// An already-logged-in parent (e.g. reopening the link) gets an explicit
+// confirm-or-switch step instead of silently landing on Stap 2 — that
+// felt like Stap 2 "came from thin air" with no visible reason why they
+// were suddenly picking a child.
+function showAlreadyLoggedIn(username: string) {
+  document.getElementById("group-invite-logged-in-context")!.textContent = inviteContext();
+  document.getElementById("group-invite-logged-in-username")!.textContent = username;
+  document.getElementById("group-invite-view-already-logged-in")!.hidden = false;
+  setProgressStep("ouder");
+}
+
+document.getElementById("group-invite-continue-as-logged-in")!.addEventListener("click", async () => {
+  document.getElementById("group-invite-view-already-logged-in")!.hidden = true;
+  await loadStep2();
+});
+
+document.getElementById("group-invite-logout-and-restart")!.addEventListener("click", async () => {
+  await fetch("/api/parent/logout", { method: "POST" });
+  document.getElementById("group-invite-view-already-logged-in")!.hidden = true;
+  showStep1();
+});
 
 document.querySelectorAll<HTMLButtonElement>(".group-invite-auth-tab").forEach((tabButton) => {
   tabButton.addEventListener("click", () => {
@@ -86,6 +126,7 @@ document.getElementById("group-invite-register-form")!.addEventListener("submit"
 async function loadStep2() {
   document.getElementById("group-invite-child-name-heading")!.textContent = childName;
   step2View.hidden = false;
+  setProgressStep("kind");
 
   const res = await fetch(`/api/group-invite/${encodeURIComponent(token ?? "")}/candidates`);
   if (!res.ok) {
@@ -189,6 +230,7 @@ async function acceptChild(body: AcceptBody) {
   step2View.hidden = true;
   document.getElementById("group-invite-success-heading")!.textContent = `${joinedChildName} is toegevoegd aan ${joinedGroupName}`;
   successView.hidden = false;
+  setProgressStep("klaar");
 }
 
 async function init() {
@@ -210,11 +252,10 @@ async function init() {
   groupName = data.groupName;
   childName = data.childName;
 
-  // An already-logged-in parent (e.g. reopening the link) skips straight
-  // to Stap 2 instead of being asked to log in again.
   const meRes = await fetch("/api/parent/me");
   if (meRes.ok) {
-    await loadStep2();
+    const me = await meRes.json();
+    showAlreadyLoggedIn(me.username);
   } else {
     showStep1();
   }

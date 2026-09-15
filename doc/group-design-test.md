@@ -17,32 +17,32 @@ checked against stale behavior.
 
 ## 1. Admin — group creation (Groepen tab)
 - [x] Beheer → Groepen tab loads without error, shows any existing groups.
-- [ ] "+ Groep aanmaken" → fill name + slug → submit → klas-geheim shown once in a readonly field. *(unmarked: reveal mechanism changed, now inline on the group's own row — see §6)*
-- [ ] Reload the tab (or revisit it) → the same secret is **not**
+- [x] "+ Groep aanmaken" → fill name + slug → submit → klas-geheim shown once in a readonly field. *(unmarked: reveal mechanism changed, now inline on the group's own row — see §6)*
+- [x] Reload the tab (or revisit it) → the same secret is **not**
       re-displayed anywhere; only the group name/slug/member count remain. *(unmarked: slug moved next to the name, roster-open persistence changed — see §6)*
 - [x] Creating a second group with the same slug → rejected with a clear
       "already in use" message, first group untouched.
-- [ ] Slug with uppercase/spaces/symbols → rejected client- or
+- [x] Slug with uppercase/spaces/symbols → rejected client- or
       server-side (only `a-z0-9_-` allowed). *(unmarked: fixed a real bug where the HTML pattern attribute silently failed — see §6)*
 
 
 
 ## 2. Admin — roster management
-- [ ] Click "Bekijk rooster" on a group with no members → "Nog geen
+- [x] Click "Bekijk rooster" on a group with no members → "Nog geen
       kinderen in deze groep." shown, no crash. *(unmarked: button renamed to "Rooster beheren", name is now also clickable — see §6)*
 - [x] A child added via the invite flow (see §4) appears in this list
       with correct avatar + name.
-- [ ] "Verwijderen uit groep" on a member → disappears from the roster;
+- [x] "Verwijderen uit groep" on a member → disappears from the roster;
       re-open the roster to confirm it's gone (not just visually hidden). *(unmarked: now requires confirmation first — see §6)*
 - [x] After removal, that child's own parent-dashboard card and login
       still work normally — only the group membership was affected.
-- [ ] Member count shown next to the group name matches the actual
+- [x] Member count shown next to the group name matches the actual
       roster after an add/remove. *(unmarked: layout changed — slug now sits next to the name — see §6)*
 
 ## 3. Admin — invite creation
-- [ ] Inside an open group's roster, "Kind uitnodigen" mini-form: enter a
+- [x] Inside an open group's roster, "Kind uitnodigen" mini-form: enter a
       child's name → submit → a link is revealed immediately. *(unmarked: the separate reveal box is gone, link now only lives in the highlighted list row — see §6)*
-- [ ] The invite appears in the group's invite list below the form,
+- [x] The invite appears in the group's invite list below the form,
       status "In afwachting". *(unmarked: tied to the same change above)*
 - [x] Open the generated link in a new tab (see §4) and complete it →
       revisit the admin tab → that invite's status flips to "Gebruikt".
@@ -89,7 +89,7 @@ checked against stale behavior.
       children, plus "+ Nieuw kind toevoegen".
 - [x] Picking a child from that manual checklist completes the join and
       shows the named success screen.
-- [ ] **Name collision**: with two separate invites for same-named kids
+- [x] **Name collision**: with two separate invites for same-named kids
       in one group, completing the second (as a different parent) is
       blocked with a collision prompt suggesting a distinguishing name;
       submitting a new name completes the join and both children show up
@@ -108,51 +108,87 @@ New behavior since the first pass — the unchecked/failing items from §4-5
 above plus everything logged as `[new]` in `groups-design.md` (now tagged
 `[#NNN]` there, referenced below).
 
-- [ ] Creating a group auto-opens its roster panel with the secret shown
+- [x] Creating a group auto-opens its roster panel with the secret shown
       inline, clearly labeled with that group's name ("Klas-geheim voor
       X:") and a "Bewaar deze code goed" warning (#235).
-- [ ] "Regenereer geheim" on a group's roster panel asks for confirmation
+- [x] "Regenereer geheim" on a group's roster panel asks for confirmation
       naming that the old secret stops working, then reveals the new one
       the same way (#235).
-- [ ] The group's slug now shows right next to its name (not next to the
+- [x] The group's slug now shows right next to its name (not next to the
       roster button) and is a clickable link that opens that group's
       actual page in a new tab (#237, #239).
-- [ ] "? Wat is een slug?" under the slug field on the create-group form
+- [x] "? Wat is een slug?" under the slug field on the create-group form
       toggles a plain-language explanation (#238).
-- [ ] Entering an invalid slug shows a specific message about the
+- [x] Entering an invalid slug shows a specific message about the
       allowed characters, not a generic "vul de velden goed in" (#240).
-- [ ] Creating a group invite no longer shows the link twice — only the
+- [x] Creating a group invite no longer shows the link twice — only the
       list, with the new invite briefly highlighted (#241).
-- [ ] With `PUBLIC_BASE_URL` unset/empty in `.env`, generated invite
+- [x] With `PUBLIC_BASE_URL` unset/empty in `.env`, generated invite
       links still come out absolute (`http://host:port/...`), not
       relative (#242).
-- [ ] Clicking a group's name (not just the "Rooster beheren" button)
+- [x] Clicking a group's name (not just the "Rooster beheren" button)
       also expands/collapses its roster (#243).
-- [ ] Removing a child from a group's roster now asks for confirmation
+- [x] Removing a child from a group's roster now asks for confirmation
       first (#244).
-- [ ] The roster-management button is now labeled "Rooster beheren", not
+- [x] The roster-management button is now labeled "Rooster beheren", not
       "Bekijk rooster" (#247).
 - [ ] Visiting a slug that isn't a real group returns an actual HTTP 404
       (check via devtools Network tab, not just the rendered page) (#248).
-- [ ] Once unlocked (gate or already-trusted), a group's avatar screen
+- [x] Once unlocked (gate or already-trusted), a group's avatar screen
       shows "Welkom bij {groepsnaam}, klik op je naam om door te gaan"
       above the tiles, instead of the generic "Wie ben jij?" (#249).
-- [ ] On the invite-accept flow's "+ Nieuw kind toevoegen" form, the
+- [x] On the invite-accept flow's "+ Nieuw kind toevoegen" form, the
       heading now names the actual child from the invite (e.g. "Nieuw
       kind: Sjeng"), not a generic "Nieuw kind" (#250, #252).
-- [ ] The manual-picker heading ("Welk kind is ...?") also names the
+- [x] The manual-picker heading ("Welk kind is ...?") also names the
       invite's child throughout Stap 2, not just once at the very top
       (#252).
-- [ ] Re-verify the three items that failed the first manual pass now
+- [x] Re-verify the three items that failed the first manual pass now
       that the above context/clarity fixes are in — these already pass
       in the automated suite, so a repeat failure here would be a real
       regression worth flagging precisely (browser, exact steps):
-  - [ ] a child already logged in who visits a group slug still lands on
+  - [x] a child already logged in who visits a group slug still lands on
         their own home screen, no gate.
-  - [ ] declining the fuzzy-match confirmation falls through to the
+  - [x] declining the fuzzy-match confirmation falls through to the
         manual picker correctly.
-  - [ ] two same-named invites in one group trigger the collision prompt
+  - [x] two same-named invites in one group trigger the collision prompt
         on the second one.
+
+## 7. Second polish round (#281-285)
+- [ ] Cannot promote a parent to group-admin of an existing group — this
+      is a known, already-deferred gap (#281), not something to test;
+      listed here only so it isn't mistaken for new.
+- [ ] The avatar tile grid (both `/` and a group's `/<slug>`) shows
+      uniformly square tiles in a centered, wrapped layout — a single
+      child (or a small handful) sits as a centered row instead of
+      stretching to fill the full width (#282).
+- [ ] Opening an invite link **while already logged in** as a parent
+      shows an explicit "Je bent ingelogd als X — doorgaan, of uitloggen
+      en opnieuw?" step, instead of silently landing on Stap 2 (#283).
+- [ ] A persistent Ouder/Kind/Klaar progress indicator is visible across
+      Stap 1, Stap 2, and the success screen, with the current step
+      highlighted (#283).
+- [ ] Choosing "Nee, uitloggen en opnieuw" on that already-logged-in step
+      actually logs out (confirm via `/api/parent/me` failing, or just
+      that Stap 1's login/register tabs reappear) and lets you log back
+      in as a different parent (#283).
+- [ ] **Regression check for the reported bug**: unlock a group's roster
+      via the klas-geheim gate *without* checking "Onthouden", log in as
+      a child from that scoped roster, then log back out — the roster
+      shown afterward must still be that same group's scoped roster
+      (same tile count as the admin page), never the full unscoped list
+      of every child in the database (#284).
+- [ ] **404 on a wrong slug, round 2**: visit a slug that has never been
+      valid, confirm via devtools Network tab that the request itself
+      returns 404 (not just that a "niet gevonden" message renders).
+      If you still don't see one, try it in an incognito/private window
+      or after a hard refresh (Cmd/Ctrl+Shift+R) first — the prior
+      investigation found the server correctly 404s on a fresh request
+      even with a matching cache validator, so a repeat failure only via
+      normal back/forward browser navigation would be expected (browsers'
+      back/forward-cache bypasses HTTP caching rules entirely); a failure
+      on a **fresh** visit would be a real, different bug worth reporting
+      with exact repro steps (#285).
 
 ## Known gaps — not built yet, don't test
 - **Step 7 (roster polish)**: collapsible per-group sections when an

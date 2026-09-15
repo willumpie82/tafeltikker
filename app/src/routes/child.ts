@@ -6,7 +6,11 @@ import { isValidPin, verifySecret } from "../auth/password.js";
 import { requireChildId } from "../auth/require.js";
 
 export default async function childRoutes(app: FastifyInstance) {
-  app.get("/api/child/avatars", async () => {
+  app.get("/api/child/avatars", async (_request, reply) => {
+    // Who's allowed to see which children is exactly the thing groups
+    // exist to scope — never let a browser reuse a cached copy of this
+    // across contexts (e.g. after switching away from a group).
+    reply.header("Cache-Control", "no-store");
     const rows = await db
       .select({ id: children.id, name: children.name, avatarId: children.avatarId })
       .from(children);

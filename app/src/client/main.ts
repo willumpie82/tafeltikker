@@ -51,11 +51,21 @@ function getGroupSlugFromPath(): string | null {
   return slug || null;
 }
 
-initGroupGate((groupName, avatars) => {
+// An unlock without "Onthouden" reveals the roster only "for this
+// pageload" (no trust cookie gets set), so it can't be re-derived by
+// re-checking the trust-gated endpoint later in the same pageload — e.g.
+// right after a child logs out. Caching what we were just shown lets the
+// logout handler redisplay it directly instead of re-fetching.
+let unlockedGroupRoster: { groupName: string; avatars: Avatar[] } | null = null;
+
+function showUnlockedGroupRoster(groupName: string, avatars: Avatar[]) {
+  unlockedGroupRoster = { groupName, avatars };
   document.getElementById("avatars-heading")!.textContent = `Welkom bij ${groupName}, klik op je naam om door te gaan`;
   renderAvatarGrid(avatars);
   showView("view-avatars");
-});
+}
+
+initGroupGate(showUnlockedGroupRoster);
 
 async function loadGroupAvatarsOrGate(slug: string) {
   const res = await fetch(`/api/group/${slug}/avatars`);
@@ -68,9 +78,7 @@ async function loadGroupAvatarsOrGate(slug: string) {
     return;
   }
   const { groupName, avatars } = await res.json();
-  document.getElementById("avatars-heading")!.textContent = `Welkom bij ${groupName}, klik op je naam om door te gaan`;
-  renderAvatarGrid(avatars);
-  showView("view-avatars");
+  showUnlockedGroupRoster(groupName, avatars);
 }
 
 function selectChild(avatar: Avatar) {
@@ -139,8 +147,24 @@ document.getElementById("pin-back")!.addEventListener("click", () => {
 document.getElementById("logout-button")!.addEventListener("click", async () => {
   await fetch("/api/child/logout", { method: "POST" });
   selectedChild = null;
-  showView("view-avatars");
-  loadAvatars();
+
+  // Re-show the same context the child was actually in — unconditionally
+  // calling the ungrouped loadAvatars() here was a real bug: logging out
+  // from inside a group silently swapped the tile grid to every child in
+  // the database instead of re-showing that group's scoped roster.
+  //
+  // For the grouped case, redisplay from the cache rather than
+  // re-fetching: an unlock without "Onthouden" sets no trust cookie, so
+  // re-checking the trust-gated endpoint here would wrongly re-gate a
+  // roster that's supposed to stay visible for the rest of this pageload.
+  if (unlockedGroupRoster) {
+    showUnlockedGroupRoster(unlockedGroupRoster.groupName, unlockedGroupRoster.avatars);
+  } else if (getGroupSlugFromPath()) {
+    await loadGroupAvatarsOrGate(getGroupSlugFromPath()!);
+  } else {
+    showView("view-avatars");
+    await loadAvatars();
+  }
 });
 
 document.getElementById("parent-icon")!.addEventListener("click", () => {

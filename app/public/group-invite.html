@@ -8,9 +8,25 @@
   </head>
   <body>
     <main id="group-invite-app">
+      <div id="group-invite-progress" class="group-invite-progress" hidden>
+        <span class="group-invite-progress-step" data-step="ouder">Ouder</span>
+        <span class="group-invite-progress-step" data-step="kind">Kind</span>
+        <span class="group-invite-progress-step" data-step="klaar">Klaar</span>
+      </div>
+
       <section id="group-invite-view-invalid" class="parent-view" hidden>
         <h1>Ongeldige uitnodiging</h1>
         <p>Deze uitnodigingslink is niet (meer) geldig — mogelijk is hij al gebruikt of verlopen. Vraag een nieuwe link aan bij de groepsbeheerder.</p>
+      </section>
+
+      <section id="group-invite-view-already-logged-in" class="parent-view" hidden>
+        <h1>Stap 1: Jouw account</h1>
+        <p id="group-invite-logged-in-context"></p>
+        <p>Je bent al ingelogd als <strong id="group-invite-logged-in-username"></strong>.</p>
+        <div class="group-invite-confirm-actions">
+          <button type="button" id="group-invite-continue-as-logged-in">Ja, doorgaan als deze ouder</button>
+          <button type="button" id="group-invite-logout-and-restart">Nee, uitloggen en opnieuw</button>
+        </div>
       </section>
 
       <section id="group-invite-view-step1" class="parent-view" hidden>

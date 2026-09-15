@@ -224,6 +224,8 @@ export default async function groupRoutes(app: FastifyInstance) {
   // is left completely untouched — the ungrouped single-family case keeps
   // working with zero behavior change; grouped installs use this instead.
   app.get<{ Params: { slug: string } }>("/api/group/:slug/avatars", async (request, reply) => {
+    // Same reasoning as /api/child/avatars: never cacheable.
+    reply.header("Cache-Control", "no-store");
     const [group] = await db.select({ id: groups.id, name: groups.name }).from(groups).where(eq(groups.slug, request.params.slug));
     if (!group) return reply.code(404).send({ error: "group_not_found" });
 
