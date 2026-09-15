@@ -9,35 +9,41 @@ same style as `test-plan.md`.
 Setup: `npm run dev` in `app/`, logged in as `admin`/`wachtwoord123`
 (system_admin). Seeded children: Sam/1234, Robin/4321.
 
+Checking a box here is what promotes an item in `groups-design.md` from
+`FIXED` (code changed) to `RESOLVED` (verified) — see that doc's status
+key. An item whose underlying behavior changed after being checked gets
+unmarked with a note pointing at what replaced it, rather than left
+checked against stale behavior.
+
 ## 1. Admin — group creation (Groepen tab)
 - [x] Beheer → Groepen tab loads without error, shows any existing groups.
-- [x] "+ Groep aanmaken" → fill name + slug → submit → klas-geheim shown once in a readonly field.       
-- [x] Reload the tab (or revisit it) → the same secret is **not**
-      re-displayed anywhere; only the group name/slug/member count remain.
+- [ ] "+ Groep aanmaken" → fill name + slug → submit → klas-geheim shown once in a readonly field. *(unmarked: reveal mechanism changed, now inline on the group's own row — see §6)*
+- [ ] Reload the tab (or revisit it) → the same secret is **not**
+      re-displayed anywhere; only the group name/slug/member count remain. *(unmarked: slug moved next to the name, roster-open persistence changed — see §6)*
 - [x] Creating a second group with the same slug → rejected with a clear
       "already in use" message, first group untouched.
-- [x] Slug with uppercase/spaces/symbols → rejected client- or
-      server-side (only `a-z0-9_-` allowed).
+- [ ] Slug with uppercase/spaces/symbols → rejected client- or
+      server-side (only `a-z0-9_-` allowed). *(unmarked: fixed a real bug where the HTML pattern attribute silently failed — see §6)*
 
 
 
 ## 2. Admin — roster management
-- [x] Click "Bekijk rooster" on a group with no members → "Nog geen
-      kinderen in deze groep." shown, no crash.
+- [ ] Click "Bekijk rooster" on a group with no members → "Nog geen
+      kinderen in deze groep." shown, no crash. *(unmarked: button renamed to "Rooster beheren", name is now also clickable — see §6)*
 - [x] A child added via the invite flow (see §4) appears in this list
       with correct avatar + name.
-- [x] "Verwijderen uit groep" on a member → disappears from the roster;
-      re-open the roster to confirm it's gone (not just visually hidden).
+- [ ] "Verwijderen uit groep" on a member → disappears from the roster;
+      re-open the roster to confirm it's gone (not just visually hidden). *(unmarked: now requires confirmation first — see §6)*
 - [x] After removal, that child's own parent-dashboard card and login
       still work normally — only the group membership was affected.
-- [x] Member count shown next to the group name matches the actual
-      roster after an add/remove.
+- [ ] Member count shown next to the group name matches the actual
+      roster after an add/remove. *(unmarked: layout changed — slug now sits next to the name — see §6)*
 
 ## 3. Admin — invite creation
-- [x] Inside an open group's roster, "Kind uitnodigen" mini-form: enter a
-      child's name → submit → a link is revealed immediately.
-- [x] The invite appears in the group's invite list below the form,
-      status "In afwachting".
+- [ ] Inside an open group's roster, "Kind uitnodigen" mini-form: enter a
+      child's name → submit → a link is revealed immediately. *(unmarked: the separate reveal box is gone, link now only lives in the highlighted list row — see §6)*
+- [ ] The invite appears in the group's invite list below the form,
+      status "In afwachting". *(unmarked: tied to the same change above)*
 - [x] Open the generated link in a new tab (see §4) and complete it →
       revisit the admin tab → that invite's status flips to "Gebruikt".
 
@@ -68,11 +74,11 @@ Setup: `npm run dev` in `app/`, logged in as `admin`/`wachtwoord123`
 ## 5. Invite accept flow (`/group-invite.html?token=...`)
 - [x] Open an invite link with no token / a garbage token → "Ongeldige
       uitnodiging" state.
-- [x] **New parent path**: register a new account on Stap 1 → Stap 2
+- [ ] **New parent path**: register a new account on Stap 1 → Stap 2
       shows an empty candidate checklist (no children yet) → "+ Nieuw
       kind toevoegen" → pick an avatar, set a PIN → named success screen
       ("X is toegevoegd aan Y") → child appears in the parent's own
-      dashboard *and* in the group's admin roster.
+      dashboard *and* in the group's admin roster. *(unmarked: the new-child form heading now names the actual child — see §6)*
 - [x] **Existing parent, fuzzy match**: log in on Stap 1 with an account
       that has a child whose name matches (or nearly matches) the
       invite's child-name → Stap 2 shows "Is dit [avatar] [naam]?" →
