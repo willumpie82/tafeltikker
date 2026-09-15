@@ -35,6 +35,32 @@ await app.register(sessionPlugin);
 await app.register(fastifyStatic, {
   root: join(__dirname, "..", "public"),
 });
+
+// find-my-way ranks routes static > param > wildcard, so an unguarded
+// "/:slug" would hijack every existing single-segment static asset
+// regardless of registration order — this allowlist re-delegates known
+// filenames to the static plugin's own sendFile() and treats anything
+// else as a group slug. Verified against the actual public/ directory
+// listing (group-invite.html/.js land in a later step, listed here ahead
+// of time since this allowlist needs to already know about them).
+const RESERVED_TOP_LEVEL_PATHS = new Set([
+  "parent.html", "admin.html", "register.html", "group-invite.html",
+  "styles.css", "parent.css", "admin.css",
+  "app.js", "parent.js", "admin.js", "register.js", "group-invite.js",
+  "favicon.ico",
+]);
+// @fastify/static only auto-serves "/" via its wildcard route, which in
+// this find-my-way version ranks *below* the "/:slug" param route below —
+// the opposite of exact-static > param > wildcard for every other static
+// asset. An explicit exact route for "/" outranks both and restores it.
+app.get("/", async (_request, reply) => reply.sendFile("index.html"));
+app.get<{ Params: { slug: string } }>("/:slug", async (request, reply) => {
+  const { slug } = request.params;
+  if (RESERVED_TOP_LEVEL_PATHS.has(slug)) return reply.sendFile(slug);
+  if (!/^[a-z0-9_-]+$/.test(slug)) return reply.callNotFound();
+  return reply.sendFile("index.html"); // client reads location.pathname itself
+});
+
 await app.register(childRoutes);
 await app.register(mathRoutes);
 await app.register(parentRoutes);

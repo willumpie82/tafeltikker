@@ -3,6 +3,7 @@ import { startMathSettings } from "./math.js";
 import { startTypingSettings } from "./typing.js";
 import { emojiFor } from "./avatars.js";
 import { refreshChallengeWidget } from "./challenges.js";
+import { initGroupGate, showGroupGate } from "./group-gate.js";
 
 setChallengeWidgetRefresh(refreshChallengeWidget);
 
@@ -27,10 +28,7 @@ function resetPin() {
   renderPinDots();
 }
 
-async function loadAvatars() {
-  const res = await fetch("/api/child/avatars");
-  const avatars: Avatar[] = await res.json();
-
+function renderAvatarGrid(avatars: Avatar[]) {
   const grid = document.getElementById("avatar-grid")!;
   grid.innerHTML = "";
   for (const avatar of avatars) {
@@ -41,6 +39,35 @@ async function loadAvatars() {
     button.addEventListener("click", () => selectChild(avatar));
     grid.appendChild(button);
   }
+}
+
+async function loadAvatars() {
+  const res = await fetch("/api/child/avatars");
+  renderAvatarGrid(await res.json());
+}
+
+function getGroupSlugFromPath(): string | null {
+  const [slug] = window.location.pathname.replace(/^\/+/, "").split("/");
+  return slug || null;
+}
+
+initGroupGate((avatars) => {
+  renderAvatarGrid(avatars);
+  showView("view-avatars");
+});
+
+async function loadGroupAvatarsOrGate(slug: string) {
+  const res = await fetch(`/api/group/${slug}/avatars`);
+  if (res.status === 404) {
+    showView("view-group-not-found");
+    return;
+  }
+  if (!res.ok) {
+    showGroupGate(slug);
+    return;
+  }
+  renderAvatarGrid(await res.json());
+  showView("view-avatars");
 }
 
 function selectChild(avatar: Avatar) {
@@ -128,6 +155,10 @@ document.getElementById("start-typing-button")!.addEventListener("click", () => 
 async function init() {
   buildPinPad();
 
+  // An existing child session always wins regardless of slug — child-facing
+  // login itself doesn't change per the design doc. A child already logged
+  // in who visits a different group's URL still lands on their own home
+  // view with no gate check.
   const meRes = await fetch("/api/child/me");
   if (meRes.ok) {
     const child = await meRes.json();
@@ -136,8 +167,14 @@ async function init() {
     return;
   }
 
-  await loadAvatars();
-  showView("view-avatars");
+  const slug = getGroupSlugFromPath();
+  if (!slug) {
+    await loadAvatars();
+    showView("view-avatars");
+    return;
+  }
+
+  await loadGroupAvatarsOrGate(slug);
 }
 
 init();

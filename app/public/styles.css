@@ -112,6 +112,47 @@ h1 {
   font-weight: bold;
 }
 
+.group-gate-form {
+  max-width: 320px;
+  margin: 0 auto 24px;
+  text-align: left;
+}
+
+.group-gate-form label {
+  display: block;
+  margin-bottom: 12px;
+  font-weight: bold;
+}
+
+.group-gate-form input[type="text"],
+.group-gate-form input[type="password"] {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 12px;
+  font-size: 1rem;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.group-gate-form .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: normal;
+}
+
+.group-gate-form .checkbox-label input {
+  width: auto;
+}
+
+.group-gate-divider {
+  text-align: center;
+  color: #999;
+}
+
 .pin-pad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

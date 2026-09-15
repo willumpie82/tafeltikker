@@ -16,6 +16,48 @@
         <p class="version-tag">Tafeltikker · beta v0.1</p>
       </section>
 
+      <section id="view-group-gate" class="view" hidden>
+        <h1>Wachtwoord voor deze groep</h1>
+
+        <form id="group-gate-secret-form" class="group-gate-form">
+          <label>
+            Klas geheim
+            <input type="text" id="group-gate-secret-input" autocomplete="off" required />
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="group-gate-secret-remember" />
+            Onthouden voor deze groep
+          </label>
+          <button type="submit" class="big-button">Ontgrendelen</button>
+          <p id="group-gate-secret-error" class="pin-error" hidden>Dat is niet het goede geheim, probeer nog eens.</p>
+        </form>
+
+        <p class="group-gate-divider">of</p>
+
+        <form id="group-gate-parent-form" class="group-gate-form">
+          <h2>Ouder login</h2>
+          <label>
+            Gebruikersnaam
+            <input type="text" id="group-gate-parent-username" autocomplete="username" required />
+          </label>
+          <label>
+            Wachtwoord
+            <input type="password" id="group-gate-parent-password" autocomplete="current-password" required />
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="group-gate-parent-remember" />
+            Onthouden voor deze groep
+          </label>
+          <button type="submit" class="big-button">Inloggen</button>
+          <p id="group-gate-parent-error" class="pin-error" hidden>Geen kind in deze groep.</p>
+        </form>
+      </section>
+
+      <section id="view-group-not-found" class="view" hidden>
+        <h1>Groep niet gevonden</h1>
+        <p>Controleer de link met de groepsbeheerder.</p>
+      </section>
+
       <section id="view-pin" class="view" hidden>
         <button type="button" id="pin-back" class="back-button" aria-label="Terug">&larr;</button>
         <h1 id="pin-heading">Wat is je geheime code?</h1>
