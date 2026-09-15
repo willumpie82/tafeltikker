@@ -363,6 +363,13 @@ Also covers **admin dashboard polish requested after initial review**:
   renders as "Tim (verwijderd door ouder)" rather than disappearing
   silently, distinct from both a pending invite and a normal member.
 
+**Also folds in feedback from the manual-QA rounds** (`groups-design.md`
+[#251]): on a group with many invites the flat list gets long — collapse
+it (matching the per-group collapsible theme above) and add a per-invite
+delete/cleanup action so a group admin can prune stale ones. No existing
+"delete a group invite" endpoint — this step adds
+`DELETE /api/admin/groups/:groupId/invites/:inviteId`.
+
 ## Step 8 — Parent-facing group visibility
 **Files:** `app/src/routes/parent.ts` (small addition to the existing
 child-listing route, or a new `GET /api/parent/children/:id/groups`),
@@ -381,13 +388,63 @@ ownership-scoping (reuse `assertOwnsChild`'s pattern).
 dashboard; a parent whose child isn't in any group sees no change from
 today's card (regression guard for the ungrouped case).
 
+## Step 9 — Group lifecycle management (edit/disable/rename)
+**Files:** `app/src/routes/groups.ts`, `app/src/db/schema.ts` (add an
+`active`/`disabled` flag to `groups`, migration), `app/src/client/
+admin/main.ts`/`admin.html`, `app/e2e/groups.spec.ts` (extend).
+
+New scope surfaced by manual QA (`groups-design.md` [#236], [#281]) —
+not part of the original 8-step plan, added here rather than
+retrofitted into an earlier step since it touches permissions, not just
+rendering.
+
+**Permission split, per the original feedback:**
+- A **group admin** (per-`group_admins` row) can enable/disable their
+  own group and rename its display name — not the slug.
+- Only a **site admin** (`system_admin`/`user_admin`) can edit the slug,
+  or remove a group entirely. Matches the existing precedent that only
+  site admins create groups in the first place (step 3).
+
+**Endpoints** (manual per-handler checks, same convention as every
+other route in `groups.ts`):
+- `PATCH /api/admin/groups/:id` — `{ name?, active?, slug? }`.
+  `requireGroupAdmin` for `name`/`active`; `slug` additionally requires
+  `requireAdmin` (site admin) even for a group's own admin.
+- `DELETE /api/admin/groups/:id` — `requireAdmin` only. Needs an
+  explicit decision on cascade behavior before building: does deleting
+  a group hard-delete `group_children`/`group_invites`/`group_admins`
+  rows, or should groups only ever be disabled, never deleted, to avoid
+  orphaning history? Leaning toward **disable-only, no hard delete** —
+  simpler, reversible, and avoids a cascade-delete decision entirely —
+  but flag this for explicit confirmation before implementing rather
+  than assuming.
+- A disabled group's slug should probably show the same not-found state
+  as a nonexistent one to the child-facing gate (`/:slug`) — needs the
+  same server-side check the step-4 404 fix already added, just also
+  checking `active`.
+
+**Admin UI:** enable/disable toggle and a rename form on each group's
+row, gated client-side by role (mirroring the existing pattern in
+`admin/main.ts` for parent role editing, which already checks
+`myRole === "system_admin"` before rendering certain controls) — but the
+server-side check is what actually matters; the client-side gate is
+just for not showing controls that would 403 anyway.
+
+**Test:** a group admin can rename their group and disable/re-enable it,
+but a PATCH attempting to change the slug as a non-site-admin is
+rejected; a site admin can do all of the above plus change the slug; a
+disabled group's `/:slug` page shows the same not-found state as a
+nonexistent slug.
+
 ## Explicitly deferred (raised during review, not blocking this plan)
 - **A group having more than one admin** (e.g. a stand-in teacher) —
   the data model (step 1's `group_admins` join table) already supports
   this with zero schema change, but the *flow* for promoting a second
   parent to group-admin of an existing group isn't designed. Not needed
   for a group to function with its original single admin, so left for a
-  later pass rather than blocking this plan.
+  later pass rather than blocking this plan. Still deferred even after
+  step 9 — step 9 is about editing/disabling an existing group's own
+  fields, not about who administers it.
 - **Per-group challenges** on the group-admin dashboard — already listed
   as deferred in `doc/groups-design.md`; still not designed.
 
@@ -409,3 +466,9 @@ tuning beyond the simple case-insensitive word match in step 6.
   the group's admin roster reflects both, and confirm that device is
   already trusted for the group afterward (no gate shown revisiting the
   slug) since finishing the invite auto-trusts per step 6.
+
+**Steps 7-9**: same discipline (full e2e + tsc after each), plus a
+manual click-through pass using `doc/group-design-test.md`'s
+FIXED→RESOLVED workflow (see that doc's header) — add a fresh numbered
+section per step there rather than reusing the steps 1-6 sections, which
+are archived to `doc/groups-design-done.md` once fully verified.
